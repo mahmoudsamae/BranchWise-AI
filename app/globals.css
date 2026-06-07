@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@source "./**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../hooks/**/*.{js,ts,jsx,tsx,mdx}";
+
+:root {
+  --bg-primary: #0a0f1e;
+  --bg-card: #111827;
+  --bg-elevated: #1f2937;
+  --border: #1f2937;
+  --border-subtle: #374151;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: #818cf8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Thin dark scrollbars — sidebar & scrollable panels */
+.bw-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #374151 transparent;
+}
+
+.bw-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.bw-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bw-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #374151;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.bw-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #4b5563;
+}
+
+.bw-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
