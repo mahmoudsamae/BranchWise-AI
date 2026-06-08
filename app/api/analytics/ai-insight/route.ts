@@ -96,11 +96,20 @@ export async function POST(request: Request) {
         model: "gpt-4o",
         messages: [
           {
+            role: "system",
+            content:
+              "You are an operations analyst for AZUR Camping, a multi-branch hospitality company. " +
+              "Rules: 1) Always mention specific branch names and exact numbers. " +
+              "2) Structure your response as: one sentence on top performer, one sentence on biggest risk, one actionable recommendation. " +
+              "3) Use German if the data contains German branch names. " +
+              "4) Never say 'I don't have enough data' — always give a best-effort insight.",
+          },
+          {
             role: "user",
-            content: `You are an operations analyst. Based on this real data from branch reports, write a 2-3 sentence insight for the General Manager. Be specific — mention branch names, actual numbers, and one concrete recommendation. Data: ${context}`,
+            content: "Based on this real operational data, provide a 3-sentence insight:\n" + context,
           },
         ],
-        max_tokens: 220,
+        max_tokens: 350,
       }),
     });
 

@@ -48,7 +48,16 @@ export async function POST(_request: Request, ctx: Ctx) {
       return `${label}: ${typeof val === "object" ? JSON.stringify(val) : val}`;
     });
 
-    const prompt = `Summarize this branch operations report in 3-5 bullet points for a general manager. Branch: ${branch?.name ?? "Unknown"}. Period: ${rr?.period_start ?? "?"} to ${rr?.period_end ?? "?"}.\n\nData:\n${lines.join("\n")}`;
+    const prompt =
+      "Generate a structured bullet-point summary of this report following your format rules exactly. " +
+      "Branch: " +
+      (branch?.name ?? "Unknown") +
+      ". Period: " +
+      (rr?.period_start ?? "?") +
+      " to " +
+      (rr?.period_end ?? "?") +
+      ".\n\nData:\n" +
+      lines.join("\n");
 
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -59,7 +68,17 @@ export async function POST(_request: Request, ctx: Ctx) {
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: "You are an operations analyst for a multi-branch hospitality business. Be concise and actionable." },
+          {
+            role: "system",
+            content:
+              "You are an operations analyst for AZUR Camping. " +
+              "Rules: " +
+              "1) Write exactly 3-5 bullet points — no paragraphs, no headers. " +
+              "2) Each bullet must start with a bold label like **Revenue:**, **Issue:**, **Trend:**, **Recommendation:**. " +
+              "3) Always include one Recommendation bullet at the end. " +
+              "4) Detect the language of the report data and respond in the same language (German or English). " +
+              "5) Be specific with numbers — never write vague statements.",
+          },
           { role: "user", content: prompt },
         ],
         max_tokens: 500,
