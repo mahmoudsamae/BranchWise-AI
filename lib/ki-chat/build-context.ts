@@ -42,6 +42,20 @@ function formatReportData(data: Record<string, unknown>): string {
   return parts.length ? parts.join(" | ") : "(no field data)";
 }
 
+const ISSUE_KEYWORDS = ["problem", "fehler", "kaputt", "defekt", "issue", "broken", "not working"];
+const DECISION_KEYWORDS = ["entschieden", "beschlossen", "agreed", "decided"];
+
+function bodyMatchesKeywords(body: string, keywords: string[]): boolean {
+  const lower = body.toLowerCase();
+  return keywords.some((kw) => lower.includes(kw));
+}
+
+function bodySnippet(body: string, max = 120): string {
+  const oneLine = body.replace(/\s+/g, " ").trim();
+  if (oneLine.length <= max) return oneLine;
+  return oneLine.slice(0, max - 1) + "…";
+}
+
 export async function buildKiChatContext(
   supabase: SupabaseClient,
   mode: ContextMode,
@@ -147,6 +161,132 @@ async function buildReportsContextFromDb(supabase: SupabaseClient, hrOnly: boole
   }
   if (!summaries?.length) lines.push("(no AI summaries)");
 
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: allRequests } = await supabase
+    .from("report_requests")
+    .select("id, branch_id, template_id, due_date, period_start, period_end, status")
+    .order("due_date", { ascending: false })
+    .limit(60);
+
+  let reqList = allRequests ?? [];
+  if (hrTemplateIds) {
+    reqList = reqList.filter((r) => hrTemplateIds!.has(r.template_id as string));
+  }
+
+  const reqBranchIds = [...new Set(reqList.map((r) => r.branch_id))];
+  const reqTemplateIds = [...new Set(reqList.map((r) => r.template_id))];
+
+  const [{ data: reqBranches }, { data: reqTemplates }] = await Promise.all([
+    reqBranchIds.length ? supabase.from("branches").select("id, name").in("id", reqBranchIds) : { data: [] },
+    reqTemplateIds.length
+      ? supabase.from("templates").select("id, title").in("id", reqTemplateIds)
+      : { data: [] },
+  ]);
+
+  const reqBranchName = new Map((reqBranches ?? []).map((b) => [b.id, b.name]));
+  const reqTplTitle = new Map((reqTemplates ?? []).map((t) => [t.id, t.title]));
+
+  const overdueRequests = reqList.filter(
+    (r) => r.status === "pending" && String(r.due_date) < today,
+  );
+  const pendingOnTime = reqList.filter(
+    (r) => r.status === "pending" && String(r.due_date) >= today,
+  );
+
+  lines.push("");
+  lines.push("=== OVERDUE REPORT REQUESTS ===");
+  if (overdueRequests.length === 0) {
+    lines.push("(none)");
+  } else {
+    for (const r of overdueRequests) {
+      const bname = reqBranchName.get(r.branch_id as string) ?? "Unknown";
+      const ttitle = reqTplTitle.get(r.template_id as string) ?? "Unknown";
+      const due = String(r.due_date);
+      const period = String(r.period_start) + " to " + String(r.period_end);
+      lines.push(
+        "CRITICAL: " + bname + " | " + ttitle + " | due " + due + " | period " + period,
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push("=== PENDING REPORT REQUESTS ===");
+  if (pendingOnTime.length === 0) {
+    lines.push("(none)");
+  } else {
+    for (const r of pendingOnTime) {
+      const bname = reqBranchName.get(r.branch_id as string) ?? "Unknown";
+      const ttitle = reqTplTitle.get(r.template_id as string) ?? "Unknown";
+      const due = String(r.due_date);
+      const period = String(r.period_start) + " to " + String(r.period_end);
+      lines.push(bname + " | " + ttitle + " | due " + due + " | period " + period);
+    }
+  }
+
+  const { data: punctReports } = await supabase
+    .from("reports")
+    .select("branch_id, template_id, request_id, submitted_at")
+    .in("status", ["submitted", "reviewed"])
+    .not("submitted_at", "is", null)
+    .order("submitted_at", { ascending: false })
+    .limit(100);
+
+  let punctList = punctReports ?? [];
+  if (hrTemplateIds) {
+    punctList = punctList.filter((r) => hrTemplateIds!.has(r.template_id as string));
+  }
+
+  const punctRequestIds = [...new Set(punctList.map((r) => r.request_id))];
+  const { data: punctReqs } =
+    punctRequestIds.length > 0
+      ? await supabase.from("report_requests").select("id, due_date").in("id", punctRequestIds)
+      : { data: [] };
+  const punctDueMap = new Map((punctReqs ?? []).map((r) => [r.id, String(r.due_date)]));
+
+  const punctBranchIds = [...new Set(punctList.map((r) => r.branch_id))];
+  const { data: punctBranches } =
+    punctBranchIds.length > 0
+      ? await supabase.from("branches").select("id, name").in("id", punctBranchIds)
+      : { data: [] };
+  const punctBranchName = new Map((punctBranches ?? []).map((b) => [b.id, b.name]));
+
+  const punctByBranch = new Map<string, { onTime: number; total: number; late: number }>();
+  for (const r of punctList) {
+    const bid = r.branch_id as string;
+    const due = punctDueMap.get(r.request_id as string);
+    if (!due) continue;
+    const submittedDate = String(r.submitted_at).slice(0, 10);
+    const cur = punctByBranch.get(bid) ?? { onTime: 0, total: 0, late: 0 };
+    cur.total += 1;
+    if (submittedDate <= due) cur.onTime += 1;
+    else cur.late += 1;
+    punctByBranch.set(bid, cur);
+  }
+
+  lines.push("");
+  lines.push("=== SUBMISSION PUNCTUALITY PER BRANCH ===");
+  if (punctByBranch.size === 0) {
+    lines.push("(no submitted reports with due dates)");
+  } else {
+    for (const [bid, stats] of punctByBranch) {
+      const bname = punctBranchName.get(bid) ?? "Unknown";
+      const pct = stats.total > 0 ? Math.round((stats.onTime / stats.total) * 100) : 0;
+      lines.push(
+        bname +
+          ": " +
+          String(stats.onTime) +
+          "/" +
+          String(stats.total) +
+          " on time (" +
+          String(pct) +
+          "%) - " +
+          String(stats.late) +
+          " late",
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -187,6 +327,45 @@ async function buildCommunicationContextFromDb(supabase: SupabaseClient) {
     lines.push("");
   }
   if (list.length === 0) lines.push("(no messages)");
+
+  type HubMsg = (typeof list)[number];
+  const authorOf = (m: HubMsg) => {
+    const u = userMap.get(m.user_id as string);
+    return (u?.full_name && String(u.full_name).trim()) || u?.email || "User";
+  };
+
+  const issueMatches = [...list]
+    .reverse()
+    .filter((m) => bodyMatchesKeywords(String(m.body), ISSUE_KEYWORDS));
+  const decisionMatches = [...list]
+    .reverse()
+    .filter((m) => bodyMatchesKeywords(String(m.body), DECISION_KEYWORDS));
+
+  lines.push("");
+  lines.push("=== OPEN ISSUES SUMMARY ===");
+  if (issueMatches.length === 0) {
+    lines.push("(no potential issues detected in recent messages)");
+  } else {
+    for (const m of issueMatches) {
+      const date = String(m.created_at).slice(0, 16);
+      const who = authorOf(m);
+      const snippet = bodySnippet(String(m.body));
+      lines.push("[" + date + " | " + who + "] " + snippet);
+    }
+  }
+
+  lines.push("");
+  lines.push("=== RECENT DECISIONS ===");
+  if (decisionMatches.length === 0) {
+    lines.push("(no decisions detected in recent messages)");
+  } else {
+    for (const m of decisionMatches) {
+      const date = String(m.created_at).slice(0, 16);
+      const who = authorOf(m);
+      const snippet = bodySnippet(String(m.body));
+      lines.push("[" + date + " | " + who + "] " + snippet);
+    }
+  }
 
   return lines.join("\n");
 }
