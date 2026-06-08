@@ -70,6 +70,21 @@ function isSignificantNumericChange(current: unknown, previous: unknown): boolea
   return Math.abs((c - p) / p) > 0.1;
 }
 
+function safeDisplayValue(val: unknown): string {
+  if (val === null || val === undefined || val === "") return "—";
+  if (typeof val === "number") {
+    if (!isFinite(val) || Math.abs(val) > 1_000_000_000) return "⚠ Ungültige Zahl";
+    return String(val);
+  }
+  if (typeof val === "string") {
+    const n = Number(val);
+    if (!isNaN(n) && val.toLowerCase().includes("e") && Math.abs(n) > 1_000_000_000) {
+      return "⚠ Ungültige Zahl";
+    }
+  }
+  return String(val);
+}
+
 export function ReportDetail({ reportId, basePath }: { reportId: string; basePath: "/dashboard" | "/hr" }) {
   const { showToast } = useToast();
   const [data, setData] = useState<DetailPayload | null>(null);
@@ -347,7 +362,7 @@ export function ReportDetail({ reportId, basePath }: { reportId: string; basePat
             {fields.map((f) => (
               <div key={f.id} className="rounded-lg border border-[#1f2937] bg-[#0a0f1e]/60 p-4">
                 <p className="text-xs font-medium uppercase text-[#6b7280]">{f.label}</p>
-                <p className="mt-2 text-lg font-medium text-white">{String(repData[f.id] ?? "—")}</p>
+                <p className="mt-2 text-lg font-medium text-white">{safeDisplayValue(repData[f.id])}</p>
               </div>
             ))}
           </div>

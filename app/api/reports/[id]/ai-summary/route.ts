@@ -103,10 +103,9 @@ export async function POST(_request: Request, ctx: Ctx) {
       { onConflict: "report_id" },
     );
 
-    if (saveErr && !saveErr.message?.includes("ai_summaries")) {
-      return NextResponse.json({ summary, warning: "Summary generated but not saved to database" });
+    if (saveErr) {
+      console.error("[ai-summary] upsert error:", saveErr.message);
     }
-
     return NextResponse.json({ summary });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed";

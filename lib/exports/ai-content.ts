@@ -3,6 +3,16 @@ import type { ExportBundle } from "@/lib/exports/types";
 import type { BranchKpiRow } from "@/lib/gm-hr/analytics-service";
 import { completeOpenAi } from "@/lib/exports/openai";
 
+const EXPORT_SYSTEM_MSG = {
+  role: "system" as const,
+  content:
+    "You are an operations analyst writing management export reports for AZUR Camping, a multi-branch hospitality company. " +
+    "Rules: 1) Always name specific branches with exact figures. " +
+    "2) Write in German unless the context clearly indicates English. " +
+    "3) Be concise — no filler phrases. " +
+    "4) Structure is more important than length.",
+};
+
 const AI_BRANCH_CAP = 10;
 
 /** Top branches by revenue for per-branch OpenAI calls (cost guard on large portfolios). */
@@ -70,12 +80,13 @@ export async function generateBranchInsights(bundle: ExportBundle) {
     branches.map(async (b) => {
       const line = await completeOpenAi(
         [
+          EXPORT_SYSTEM_MSG,
           {
             role: "user",
             content: `Write 1-2 sentences of operational insight for this branch: ${branchInsightLine(b)}`,
           },
         ],
-        120,
+        180,
       );
       return [b.branch_id, line] as const;
     }),
@@ -87,6 +98,7 @@ export async function generateBranchInsights(bundle: ExportBundle) {
 export async function generateComparisonEvaluation(bundle: ExportBundle) {
   return completeOpenAi(
     [
+      EXPORT_SYSTEM_MSG,
       {
         role: "user",
         content: `Compare these branches and explain which outperforms in revenue and where risks are. Be specific with branch names.\n\n${kpiJson(bundle)}`,
@@ -99,6 +111,7 @@ export async function generateComparisonEvaluation(bundle: ExportBundle) {
 export async function generateWeeklyHighlights(bundle: ExportBundle) {
   return completeOpenAi(
     [
+      EXPORT_SYSTEM_MSG,
       {
         role: "user",
         content: `Write weekly performance highlights (2-3 paragraphs) for period ${bundle.start_date} to ${bundle.end_date} across branches. Mention submission activity.\n\nReports count: ${bundle.reports.length}\n${kpiJson(bundle)}`,
@@ -117,12 +130,13 @@ export async function generateWeeklyBranchSummaries(bundle: ExportBundle) {
       const reps = bundle.reports.filter((r) => r.branch_id === b.branch_id);
       const summary = await completeOpenAi(
         [
+          EXPORT_SYSTEM_MSG,
           {
             role: "user",
             content: `One short paragraph weekly summary for ${b.branch_name}. KPI: ${branchInsightLine(b)}. Reports submitted: ${reps.length}.`,
           },
         ],
-        150,
+        200,
       );
       return [b.branch_id, summary] as const;
     }),
