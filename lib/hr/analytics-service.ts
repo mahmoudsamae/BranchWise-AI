@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { HR_FIELD_IDS } from "@/lib/hr/default-template";
 import { getTemplateIdsForRole } from "@/lib/hr/requester-filter";
+import { entryInPeriod } from "@/lib/staff/period";
 
 export type HrAnalyticsPeriod = "week" | "month" | "custom";
 
@@ -69,16 +70,23 @@ export async function fetchHrAnalytics(
     : (branches ?? []);
   const branchName = new Map(branchList.map((b) => [b.id, b.name]));
 
+  const prefetch = new Date(`${startYmd}T12:00:00Z`);
+  prefetch.setUTCDate(prefetch.getUTCDate() - 35);
+  const prefetchYmd = prefetch.toISOString().slice(0, 10);
+
   let entriesQ = supabase
     .from("staff_report_entries")
     .select(
-      "week_start, hours_worked, overtime_hours, absences, late_arrivals, branch_id, staff_member_id, staff_members(full_name)",
+      "week_start, period_end, hours_worked, overtime_hours, absences, late_arrivals, branch_id, staff_member_id, staff_members(full_name)",
     )
-    .gte("week_start", startYmd)
+    .gte("week_start", prefetchYmd)
     .lte("week_start", endYmd);
 
   if (filters.branchId) entriesQ = entriesQ.eq("branch_id", filters.branchId);
-  const { data: entries } = await entriesQ;
+  const { data: rawEntries } = await entriesQ;
+  const entries = (rawEntries ?? []).filter((e) =>
+    entryInPeriod(String(e.week_start), e.period_end as string | null, startYmd, endYmd),
+  );
 
   const hrTemplateIds = await getTemplateIdsForRole(supabase, "hr");
   let reportsQ = supabase

@@ -70,12 +70,31 @@ export function SchedulesClient({
         fetch("/api/branches"),
       ]);
       const sJson = (await sRes.json()) as { schedules?: ScheduleRow[]; error?: string };
-      const tJson = (await tRes.json()) as { templates?: TemplateOption[] };
-      const bJson = (await bRes.json()) as { branches?: BranchOption[] };
-      if (!sRes.ok) showToast(sJson.error ?? "Failed to load schedules", "error");
-      else setSchedules(sJson.schedules ?? []);
-      setTemplates(tJson.templates ?? []);
-      setBranches(bJson.branches ?? []);
+      const tJson = (await tRes.json()) as { templates?: TemplateOption[]; error?: string };
+      const bJson = (await bRes.json()) as { branches?: BranchOption[]; error?: string };
+      if (!sRes.ok) {
+        showToast(sJson.error ?? "Failed to load schedules", "error");
+        setSchedules([]);
+      } else {
+        setSchedules(sJson.schedules ?? []);
+      }
+      if (!tRes.ok) {
+        showToast(tJson.error ?? "Failed to load templates", "error");
+        setTemplates([]);
+      } else {
+        setTemplates(tJson.templates ?? []);
+      }
+      if (!bRes.ok) {
+        showToast(bJson.error ?? "Failed to load branches", "error");
+        setBranches([]);
+      } else {
+        setBranches(bJson.branches ?? []);
+      }
+    } catch {
+      showToast("Failed to load schedules", "error");
+      setSchedules([]);
+      setTemplates([]);
+      setBranches([]);
     } finally {
       setLoading(false);
     }

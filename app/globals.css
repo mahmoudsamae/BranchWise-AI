@@ -54,21 +54,25 @@ body {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Thin dark scrollbars — sidebar & scrollable panels */
+/* Thin dark scrollbars — global page + scrollable panels */
+html,
 .bw-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-color: #374151 #0a0f1e;
 }
 
+html::-webkit-scrollbar,
 .bw-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
+html::-webkit-scrollbar-track,
 .bw-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0a0f1e;
 }
 
+html::-webkit-scrollbar-thumb,
 .bw-scrollbar::-webkit-scrollbar-thumb {
   background-color: #374151;
   border-radius: 999px;
@@ -76,10 +80,12 @@ body {
   background-clip: content-box;
 }
 
+html::-webkit-scrollbar-thumb:hover,
 .bw-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #4b5563;
 }
 
+html::-webkit-scrollbar-corner,
 .bw-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
+  background: #0a0f1e;
 }

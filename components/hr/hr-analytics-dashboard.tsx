@@ -19,9 +19,11 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import type { HrAnalyticsPayload } from "@/lib/hr/analytics-service";
+import { branchShortLabel } from "@/lib/staff/branch-abbrev";
 
-const BRANCH_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 const OVERTIME_THRESHOLD = 15;
+const CHART_HEIGHT = 200;
+const CHART_MARGIN = { top: 4, right: 8, left: 0, bottom: 0 };
 
 type PeriodKind = "week" | "month" | "custom";
 
@@ -50,6 +52,7 @@ export function HrAnalyticsDashboard() {
   const load = useCallback(async () => {
     if (period === "custom" && (!customStart || !customEnd)) {
       setError("Select start and end dates for custom period");
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -93,11 +96,35 @@ export function HrAnalyticsDashboard() {
     [data],
   );
 
+  const overtimeChartData = useMemo(
+    () =>
+      (data?.overtime_by_branch ?? []).map((b) => ({
+        ...b,
+        branch_short: branchShortLabel(b.branch_name),
+      })),
+    [data],
+  );
+
+  const workloadChartData = useMemo(
+    () =>
+      (data?.workload_by_branch ?? []).map((b) => ({
+        ...b,
+        branch_short: branchShortLabel(b.branch_name),
+      })),
+    [data],
+  );
+
   const topOvertime = data?.top_overtime_staff ?? [];
   const topAbsences = data?.top_absences_staff ?? [];
 
+  const hasMetrics =
+    data &&
+    (data.kpis.total_overtime_hours > 0 ||
+      data.kpis.total_absences > 0 ||
+      data.kpis.total_late_arrivals > 0);
+
   return (
-    <div className="space-y-8 pb-10">
+    <div className="bw-scrollbar space-y-6 pb-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">HR Analytics</h1>
@@ -177,7 +204,16 @@ export function HrAnalyticsDashboard() {
         </p>
       ) : null}
 
-      {data ? (
+      {data && !hasMetrics ? (
+        <div className="rounded-xl border border-[#1f2937] bg-[#111827] px-4 py-8 text-center">
+          <p className="text-sm font-medium text-white">No staff metrics in this period</p>
+          <p className="mt-1 text-xs text-[#9ca3af]">
+            Try a longer range (e.g. Last 30 days) or wait until branches submit HR reports with staff entries.
+          </p>
+        </div>
+      ) : null}
+
+      {data && hasMetrics ? (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
@@ -205,83 +241,106 @@ export function HrAnalyticsDashboard() {
             </article>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4 lg:col-span-2">
-              <h2 className="mb-4 text-lg font-semibold text-white">Overtime by branch</h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.overtime_by_branch}>
-                    <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                    <XAxis dataKey="branch_name" tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                    <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} />
-                    <ReferenceLine y={OVERTIME_THRESHOLD} stroke="#ef4444" strokeDasharray="4 4" label="15h" />
-                    <Bar dataKey="overtime_hours" radius={[4, 4, 0, 0]}>
-                      {data.overtime_by_branch.map((entry) => (
-                        <Cell key={entry.branch_name} fill={overtimeBarColor(entry.overtime_hours)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          <section className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-2 text-sm font-semibold text-white">Overtime by branch</h2>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <BarChart data={overtimeChartData} margin={CHART_MARGIN}>
+                  <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="branch_short"
+                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    interval={0}
+                    angle={-28}
+                    textAnchor="end"
+                    height={52}
+                  />
+                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} width={32} />
+                  <Tooltip
+                    contentStyle={{ background: "#111827", border: "1px solid #1f2937", fontSize: 12 }}
+                    labelFormatter={(_, payload) =>
+                      (payload?.[0]?.payload as { branch_name?: string })?.branch_name ?? ""
+                    }
+                  />
+                  <ReferenceLine y={OVERTIME_THRESHOLD} stroke="#ef4444" strokeDasharray="4 4" />
+                  <Bar dataKey="overtime_hours" radius={[3, 3, 0, 0]}>
+                    {overtimeChartData.map((entry) => (
+                      <Cell key={entry.branch_name} fill={overtimeBarColor(entry.overtime_hours)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4 lg:col-span-2">
-              <h2 className="mb-4 text-lg font-semibold text-white">Attendance trend (by week)</h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.attendance_trend}>
-                    <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                    <XAxis dataKey="week" tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} />
-                    <Legend />
-                    <Line type="monotone" dataKey="absences" stroke="#6366f1" strokeWidth={2} name="Absences" />
-                    <Line type="monotone" dataKey="late_arrivals" stroke="#f59e0b" strokeWidth={2} name="Late arrivals" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-2 text-sm font-semibold text-white">Attendance trend</h2>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <LineChart data={data.attendance_trend} margin={CHART_MARGIN}>
+                  <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} width={28} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937", fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Line type="monotone" dataKey="absences" stroke="#6366f1" strokeWidth={2} dot={false} name="Absences" />
+                  <Line
+                    type="monotone"
+                    dataKey="late_arrivals"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Late"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
 
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Morale by week</h2>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={moraleChartData}>
-                    <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                    <XAxis dataKey="week" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} />
-                    <Legend />
-                    <Bar dataKey="Good" stackId="m" fill="#22c55e" />
-                    <Bar dataKey="Neutral" stackId="m" fill="#eab308" />
-                    <Bar dataKey="Poor" stackId="m" fill="#ef4444" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-2 text-sm font-semibold text-white">Morale by week</h2>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <BarChart data={moraleChartData} margin={CHART_MARGIN}>
+                  <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fill: "#9ca3af", fontSize: 10 }} />
+                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} width={28} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937", fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Good" stackId="m" fill="#22c55e" />
+                  <Bar dataKey="Neutral" stackId="m" fill="#eab308" />
+                  <Bar dataKey="Poor" stackId="m" fill="#ef4444" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Workload by branch</h2>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.workload_by_branch}>
-                    <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                    <XAxis dataKey="branch_name" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                    <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} />
-                    <Legend />
-                    <Bar dataKey="hours_worked" fill="#6366f1" name="Hours worked" />
-                    <Bar dataKey="overtime_hours" fill="#ef4444" name="Overtime" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-2 text-sm font-semibold text-white">Workload by branch</h2>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <BarChart data={workloadChartData} margin={CHART_MARGIN}>
+                  <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="branch_short"
+                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    interval={0}
+                    angle={-28}
+                    textAnchor="end"
+                    height={52}
+                  />
+                  <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} width={32} />
+                  <Tooltip
+                    contentStyle={{ background: "#111827", border: "1px solid #1f2937", fontSize: 12 }}
+                    labelFormatter={(_, payload) =>
+                      (payload?.[0]?.payload as { branch_name?: string })?.branch_name ?? ""
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="hours_worked" fill="#6366f1" name="Hours" />
+                  <Bar dataKey="overtime_hours" fill="#ef4444" name="OT" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Top overtime (staff)</h2>
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-3 text-sm font-semibold text-white">Top overtime (staff)</h2>
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-[#6b7280]">
                   <tr>
@@ -301,7 +360,9 @@ export function HrAnalyticsDashboard() {
                     topOvertime.map((row) => (
                       <tr key={`${row.name}-${row.branch_name}`} className="border-t border-[#1f2937]/60">
                         <td className="py-2 text-white">{row.name}</td>
-                        <td className="py-2 text-[#9ca3af]">{row.branch_name}</td>
+                        <td className="py-2 text-[#9ca3af]" title={row.branch_name}>
+                          {branchShortLabel(row.branch_name)}
+                        </td>
                         <td className="py-2 text-right font-medium text-white">{row.hours}</td>
                       </tr>
                     ))
@@ -310,8 +371,8 @@ export function HrAnalyticsDashboard() {
               </table>
             </div>
 
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Top absences (staff)</h2>
+            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-3">
+              <h2 className="mb-3 text-sm font-semibold text-white">Top absences (staff)</h2>
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-[#6b7280]">
                   <tr>
@@ -331,7 +392,9 @@ export function HrAnalyticsDashboard() {
                     topAbsences.map((row) => (
                       <tr key={`${row.name}-${row.branch_name}`} className="border-t border-[#1f2937]/60">
                         <td className="py-2 text-white">{row.name}</td>
-                        <td className="py-2 text-[#9ca3af]">{row.branch_name}</td>
+                        <td className="py-2 text-[#9ca3af]" title={row.branch_name}>
+                          {branchShortLabel(row.branch_name)}
+                        </td>
                         <td className="py-2 text-right font-medium text-white">{row.count}</td>
                       </tr>
                     ))

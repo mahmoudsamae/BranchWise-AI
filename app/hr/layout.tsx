@@ -41,7 +41,7 @@ export default async function HrLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-[#0a0f1e] text-[#f9fafb]">
       <HrSidebar displayName={displayName} email={email} />
       <div className="min-h-screen pt-14 lg:pl-[280px] lg:pt-0">
-        <main className="page-enter page-enter-active min-h-screen overflow-y-auto p-6 md:p-8">{children}</main>
+        <main className="page-enter page-enter-active bw-scrollbar min-h-screen overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

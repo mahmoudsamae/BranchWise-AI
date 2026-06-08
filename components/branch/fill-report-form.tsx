@@ -124,6 +124,7 @@ export function FillReportForm({ requestId }: { requestId: string }) {
   }, [readOnly, detail, saveDraft]);
 
   async function onSubmitConfirmed() {
+    if (submitting) return;
     const idFromSave = await saveDraft();
     const rid = idFromSave ?? reportId;
     if (!rid) {

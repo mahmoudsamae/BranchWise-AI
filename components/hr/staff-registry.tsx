@@ -290,7 +290,7 @@ export function StaffRegistry() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
+      <div className="bw-scrollbar overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
         {loading ? (
           <p className="flex items-center gap-2 p-6 text-[#9ca3af]">
             <Loader2 className="size-4 animate-spin" /> Loading…

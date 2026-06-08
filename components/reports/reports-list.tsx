@@ -17,11 +17,13 @@ export function ReportsList({ basePath, embedded }: { basePath: "/dashboard" | "
   const [reports, setReports] = useState<ReportListItem[]>([]);
   const [stats, setStats] = useState({ total: 0, submitted: 0, draft: 0, reviewed: 0, revision_required: 0 });
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkReviewing, setBulkReviewing] = useState(false);
 
@@ -32,22 +34,42 @@ export function ReportsList({ basePath, embedded }: { basePath: "/dashboard" | "
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (type) params.set("type", type);
-    if (status) params.set("status", status);
-    if (branchId) params.set("branch_id", branchId);
-    const res = await fetch(`/api/reports?${params}`);
-    if (!res.ok) {
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (appliedSearch) params.set("search", appliedSearch);
+      if (type) params.set("type", type);
+      if (status) params.set("status", status);
+      if (branchId) params.set("branch_id", branchId);
+      const res = await fetch(`/api/reports?${params}`);
+      const j = (await res.json()) as {
+        reports?: ReportListItem[];
+        stats?: typeof stats;
+        error?: string;
+      };
+      if (!res.ok) {
+        const message = j.error ?? "Failed to load reports";
+        setError(message);
+        showToast(message, "error");
+        return;
+      }
+      setReports(j.reports ?? []);
+      setStats(
+        j.stats ?? { total: 0, submitted: 0, draft: 0, reviewed: 0, revision_required: 0 },
+      );
+      setSelected(new Set());
+    } catch {
+      const message = "Failed to load reports";
+      setError(message);
+      showToast(message, "error");
+    } finally {
       setLoading(false);
-      return;
     }
-    const j = (await res.json()) as { reports: ReportListItem[]; stats: typeof stats };
-    setReports(j.reports ?? []);
-    if (j.stats) setStats(j.stats);
-    setSelected(new Set());
-    setLoading(false);
-  }, [search, type, status, branchId]);
+  }, [appliedSearch, type, status, branchId, showToast]);
+
+  const applyFilters = useCallback(() => {
+    setAppliedSearch(search.trim());
+  }, [search]);
 
   useEffect(() => {
     void fetch("/api/branches")
@@ -153,10 +175,16 @@ export function ReportsList({ basePath, embedded }: { basePath: "/dashboard" | "
             </option>
           ))}
         </select>
-        <Button type="button" onClick={() => void load()}>
+        <Button type="button" onClick={() => applyFilters()}>
           Apply
         </Button>
       </div>
+
+      {error ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-5">
         {[
@@ -168,14 +196,14 @@ export function ReportsList({ basePath, embedded }: { basePath: "/dashboard" | "
         ].map(([label, val]) => (
           <div key={String(label)} className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
             <p className="text-xs text-[#9ca3af]">{label}</p>
-            <p className="mt-1 text-xl font-bold text-white">{val}</p>
+            <p className="mt-1 text-xl font-bold text-white">{loading ? "—" : val}</p>
           </div>
         ))}
       </div>
 
       {loading ? <SkeletonTable rows={6} cols={8} /> : null}
 
-      {!loading && reports.length === 0 ? (
+      {!loading && !error && reports.length === 0 ? (
         <EmptyState title="No reports yet" description="Reports will appear here once branches submit them." />
       ) : null}
 

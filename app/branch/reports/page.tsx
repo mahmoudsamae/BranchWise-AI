@@ -107,7 +107,15 @@ export default function BranchReportsPage() {
     }).filter(Boolean) as { req: Request; rep?: Report }[];
   }, [requests, repByRequest]);
 
-  const submittedCards = useMemo(() => reports.filter((r) => r.status === "submitted"), [reports]);
+  const submittedCards = useMemo(() => {
+    const seen = new Set<string>();
+    return reports.filter((r) => {
+      if (r.status !== "submitted") return false;
+      if (seen.has(r.request_id)) return false;
+      seen.add(r.request_id);
+      return true;
+    });
+  }, [reports]);
 
   const allCards = useMemo(() => {
     const items: { key: string; req: Request; rep?: Report; synthetic?: boolean }[] = [];

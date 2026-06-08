@@ -3,11 +3,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppRole } from "@/types/user";
 import { templateTypesForRole } from "@/lib/hr/role-scope";
 import { getScopedRequestIds, getTemplateIdsForRole } from "@/lib/hr/requester-filter";
+import { dedupeReportsByRequest } from "@/lib/reports/dedupe-by-request";
+
+function requestJoinPeriod(row: { report_requests?: unknown }): {
+  period_start?: string;
+  period_end?: string;
+} | null {
+  const raw = row.report_requests;
+  if (!raw) return null;
+  if (Array.isArray(raw)) return (raw[0] as { period_start?: string; period_end?: string }) ?? null;
+  return raw as { period_start?: string; period_end?: string };
+}
 
 export type ReportListItem = {
   id: string;
   branch_id: string;
   branch_name: string;
+  request_id: string;
   template_id: string;
   template_title: string;
   type: string;
@@ -42,6 +54,46 @@ export async function listReports(
 
   const templateIds = await getTemplateIdsForRole(supabase, params.viewerRole);
   const allowedTypes = templateTypesForRole(params.viewerRole);
+
+  let statsQuery = supabase
+    .from("reports")
+    .select("status, template_id, request_id, branch_id, updated_at")
+    .in("request_id", scopedRequestIds);
+  if (params.branch_id) statsQuery = statsQuery.eq("branch_id", params.branch_id);
+  if (templateIds.length > 0) statsQuery = statsQuery.in("template_id", templateIds);
+  const { data: statsRows, error: statsError } = await statsQuery;
+  if (statsError) throw new Error(statsError.message);
+
+  const allowedTemplateType = new Map<string, string>();
+  if (templateIds.length > 0) {
+    const { data: allTemplates } = await supabase.from("templates").select("id, type").in("id", templateIds);
+    for (const t of allTemplates ?? []) {
+      allowedTemplateType.set(t.id as string, t.type as string);
+    }
+  }
+
+  const scopedStatsRows = dedupeReportsByRequest(
+    (statsRows ?? [])
+      .filter((row) => {
+        const tplType = allowedTemplateType.get(row.template_id as string);
+        if (!allowedTypes || !tplType) return false;
+        return allowedTypes.includes(tplType);
+      })
+      .map((row) => ({
+        status: row.status as string,
+        template_id: row.template_id as string,
+        request_id: row.request_id as string,
+        updated_at: (row.updated_at as string) ?? "",
+      })),
+  );
+
+  const stats = {
+    total: scopedStatsRows.length,
+    submitted: scopedStatsRows.filter((r) => r.status === "submitted").length,
+    draft: scopedStatsRows.filter((r) => r.status === "draft").length,
+    reviewed: scopedStatsRows.filter((r) => r.status === "reviewed").length,
+    revision_required: scopedStatsRows.filter((r) => r.status === "revision_required").length,
+  };
 
   let q = supabase
     .from("reports")
@@ -81,12 +133,13 @@ export async function listReports(
       return allowedTypes.includes(tpl.type);
     })
     .map((row) => {
-    const rr = row.report_requests as { period_start?: string; period_end?: string } | null;
+    const rr = requestJoinPeriod(row);
     const tpl = tplMap.get(row.template_id as string);
     return {
       id: row.id as string,
       branch_id: row.branch_id as string,
       branch_name: branchName.get(row.branch_id as string) ?? "—",
+      request_id: row.request_id as string,
       template_id: row.template_id as string,
       template_title: tpl?.title ?? "—",
       type: tpl?.type ?? "standard",
@@ -108,13 +161,7 @@ export async function listReports(
     );
   }
 
-  const stats = {
-    total: count ?? reports.length,
-    submitted: reports.filter((r) => r.status === "submitted").length,
-    draft: reports.filter((r) => r.status === "draft").length,
-    reviewed: reports.filter((r) => r.status === "reviewed").length,
-    revision_required: reports.filter((r) => r.status === "revision_required").length,
-  };
+  reports = dedupeReportsByRequest(reports);
 
   return { reports, total: count ?? reports.length, stats };
 }

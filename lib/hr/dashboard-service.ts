@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { HR_FIELD_IDS } from "@/lib/hr/default-template";
 import { getScopedRequestIds, getTemplateIdsForRole } from "@/lib/hr/requester-filter";
+import { entryInPeriod } from "@/lib/staff/period";
 
 function weekAgoIso() {
   const d = new Date();
@@ -100,12 +101,15 @@ export async function fetchHrDashboard(supabase: SupabaseClient): Promise<HrDash
 
   const { data: staffEntries } = await supabase
     .from("staff_report_entries")
-    .select("branch_id, overtime_hours, absences")
-    .gte("week_start", weekStart);
+    .select("branch_id, overtime_hours, absences, week_start, period_end")
+    .gte("week_start", weekStart)
+    .lte("week_start", today);
 
   let overtime_hours_week = 0;
   const overtimeByBranch = new Map<string, number>();
-  for (const e of staffEntries ?? []) {
+  for (const e of (staffEntries ?? []).filter((row) =>
+    entryInPeriod(String(row.week_start), row.period_end as string | null, weekStart, today),
+  )) {
     const ot = Number(e.overtime_hours ?? 0);
     overtime_hours_week += ot;
     const bid = e.branch_id as string;

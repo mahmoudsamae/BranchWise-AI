@@ -177,6 +177,7 @@ export function ReportDetail({ reportId, basePath }: { reportId: string; basePat
   };
 
   const generateAi = async () => {
+    if (loadingAi) return;
     setLoadingAi(true);
     try {
       const res = await fetch(`/api/reports/${reportId}/ai-summary`, { method: "POST" });
@@ -353,15 +354,44 @@ export function ReportDetail({ reportId, basePath }: { reportId: string; basePat
         )}
       </section>
 
-      <section className="rounded-xl border border-[#6366f1]/30 bg-[#6366f1]/5 p-6">
+      <section
+        role={summary ? undefined : "button"}
+        tabIndex={summary ? undefined : 0}
+        aria-busy={loadingAi}
+        aria-label={summary ? undefined : loadingAi ? "Generating AI summary" : "Generate AI summary"}
+        onClick={summary ? undefined : () => void generateAi()}
+        onKeyDown={
+          summary
+            ? undefined
+            : (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  void generateAi();
+                }
+              }
+        }
+        className={cn(
+          "rounded-xl border border-[#6366f1]/30 bg-[#6366f1]/5 p-6 outline-none transition",
+          loadingAi && "pointer-events-none opacity-80",
+          !summary &&
+            !loadingAi &&
+            "cursor-pointer hover:border-[#6366f1]/50 hover:bg-[#6366f1]/10 focus-visible:ring-2 focus-visible:ring-[#6366f1]/40",
+        )}
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-white">AI summary</h2>
-          <Button type="button" variant="primary" disabled={loadingAi} onClick={() => void generateAi()}>
-            <Sparkles className="size-4" aria-hidden />
-            {loadingAi ? "Generating…" : "Generate AI summary"}
-          </Button>
+          {!summary ? (
+            <span className="inline-flex items-center gap-2 rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-semibold text-white">
+              <Sparkles className="size-4" aria-hidden />
+              {loadingAi ? "Generating…" : "Generate AI summary"}
+            </span>
+          ) : null}
         </div>
-        {summary ? <p className="mt-4 whitespace-pre-wrap text-sm text-[#e5e7eb]">{summary}</p> : <p className="mt-3 text-sm text-[#9ca3af]">No summary yet.</p>}
+        {summary ? (
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#e5e7eb]">{summary}</p>
+        ) : (
+          <p className="mt-3 text-sm text-[#9ca3af]">Tap to generate an AI summary for this report.</p>
+        )}
       </section>
 
       <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-6">

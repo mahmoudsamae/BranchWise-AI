@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { requireBranchManagerApi } from "@/lib/branch/require-session";
+import { dedupeReportsByRequest } from "@/lib/reports/dedupe-by-request";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { asJson } from "@/lib/supabase-json";
-import { requireBranchManagerApi } from "@/lib/branch/require-session";
 
 type DraftBody = {
   request_id?: string;
@@ -84,7 +85,19 @@ export async function POST(request: Request) {
     }
 
     const { data: inserted, error } = await supabase.from("reports").insert(row).select("id, status, updated_at").single();
-    if (error || !inserted) return NextResponse.json({ error: error?.message ?? "Save failed" }, { status: 400 });
+    if (error) {
+      if (error.code === "23505") {
+        const { data: raced } = await supabase
+          .from("reports")
+          .select("id, status, updated_at")
+          .eq("request_id", request_id)
+          .eq("branch_id", bid)
+          .maybeSingle();
+        if (raced) return NextResponse.json({ report: raced });
+      }
+      return NextResponse.json({ error: error.message ?? "Save failed" }, { status: 400 });
+    }
+    if (!inserted) return NextResponse.json({ error: "Save failed" }, { status: 400 });
     return NextResponse.json({ report: inserted });
   } catch {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 503 });
@@ -143,7 +156,7 @@ export async function GET() {
       }
     }
 
-    const reports = (reps ?? []).map((r) => {
+    const mapped = (reps ?? []).map((r) => {
       const req = reqById.get(r.request_id as string);
       const tpl = tplById.get(r.template_id as string);
       return {
@@ -164,6 +177,8 @@ export async function GET() {
         template_type: tpl?.type ?? "—",
       };
     });
+
+    const reports = dedupeReportsByRequest(mapped);
 
     return NextResponse.json({ reports });
   } catch {

@@ -37,14 +37,22 @@ function meaningfulWords(name: string): string[] {
   return cleaned.split(" ").filter((w) => w.length > 0 && !SKIP_WORDS.has(w.toLowerCase()));
 }
 
-/** Single branch letter for compact badges (e.g. A for AZUR). */
+/** Single branch letter — prefers location over brand (e.g. R for Regensburg, not A for AZUR). */
 export function branchLetter(name: string): string {
   const words = meaningfulWords(name);
   if (words.length === 0) {
     const c = name.replace(/[^\p{L}]/gu, "").charAt(0);
     return c ? c.toUpperCase() : "?";
   }
-  return words[0]!.charAt(0).toUpperCase();
+  const brandLike = new Set(["azur", "azurcamping"]);
+  const locationWords =
+    words.length >= 2 && brandLike.has(words[0]!.toLowerCase().replace(/\s/g, ""))
+      ? words.slice(1)
+      : words.length >= 2
+        ? words.slice(-1)
+        : words;
+  const target = locationWords[locationWords.length - 1] ?? words[words.length - 1]!;
+  return target.charAt(0).toUpperCase();
 }
 
 /** Short branch code for dense tables (e.g. AZRE). */
@@ -73,4 +81,11 @@ export function branchDisplay(name: string) {
     code: branchAbbrev(name),
     palette: branchPalette(name),
   };
+}
+
+/** Strip common brand prefix for compact UI labels. */
+export function branchShortLabel(name: string): string {
+  const trimmed = name.trim();
+  const stripped = trimmed.replace(/^AZUR\s+Camping\s+/i, "").trim();
+  return stripped || trimmed;
 }

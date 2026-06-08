@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Clock, Loader2, RefreshCw, Users } from "lucide-react";
 
+import { BranchBadge } from "@/components/staff/branch-badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { HrDashboardPayload } from "@/lib/hr/dashboard-service";
+import { branchShortLabel } from "@/lib/staff/branch-abbrev";
 
 function formatDate(iso: string) {
   try {
@@ -35,6 +37,54 @@ function KpiCard({
       </div>
       <p className={cn("mt-2 text-3xl font-bold", accent ?? "text-white")}>{value}</p>
     </article>
+  );
+}
+
+function AlertRow({
+  title,
+  description,
+  tone,
+  children,
+}: {
+  title: string;
+  description: string;
+  tone: "amber" | "red" | "yellow";
+  children: React.ReactNode;
+}) {
+  const toneStyles = {
+    amber: "border-amber-500/25 bg-amber-500/[0.06]",
+    red: "border-red-500/25 bg-red-500/[0.06]",
+    yellow: "border-[#374151] bg-[#0d1324]",
+  } as const;
+  const dotStyles = {
+    amber: "bg-amber-400",
+    red: "bg-red-400",
+    yellow: "bg-yellow-400",
+  } as const;
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3.5", toneStyles[tone])}>
+      <div className="flex items-start gap-2.5">
+        <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", dotStyles[tone])} aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white">{title}</p>
+          <p className="mt-0.5 text-xs text-[#9ca3af]">{description}</p>
+          <div className="mt-3">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BranchAlertChip({ branchName }: { branchName: string }) {
+  return (
+    <span
+      title={branchName}
+      className="inline-flex max-w-full items-center gap-2 rounded-lg border border-[#374151]/80 bg-[#111827] px-2 py-1.5"
+    >
+      <BranchBadge branchName={branchName} variant="inline" />
+      <span className="truncate text-xs font-medium text-[#e5e7eb]">{branchShortLabel(branchName)}</span>
+    </span>
   );
 }
 
@@ -79,7 +129,7 @@ export function HrDashboard() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">HR Dashboard</h1>
-          <p className="mt-1 text-sm text-[#9ca3af]">People operations â€” staff, attendance, and morale</p>
+          <p className="mt-1 text-sm text-[#9ca3af]">People operations — staff, attendance, and morale</p>
         </div>
         <Button type="button" variant="secondary" disabled={loading} onClick={() => void load()}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
@@ -95,7 +145,7 @@ export function HrDashboard() {
 
       {loading && !data ? (
         <p className="flex items-center gap-2 text-sm text-[#9ca3af]">
-          <Loader2 className="size-4 animate-spin" /> Loadingâ€¦
+          <Loader2 className="size-4 animate-spin" /> Loading…
         </p>
       ) : null}
 
@@ -127,46 +177,66 @@ export function HrDashboard() {
           </section>
 
           {hasAlerts ? (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-white">Alerts</h2>
-              <div className="grid gap-3 lg:grid-cols-3">
+            <section className="rounded-xl border border-[#1f2937] bg-[#111827]">
+              <div className="flex items-center justify-between gap-3 border-b border-[#1f2937] px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="size-4 text-amber-400" aria-hidden />
+                  <h2 className="text-sm font-semibold text-white">Attention needed</h2>
+                </div>
+                <span className="rounded-full border border-[#374151] bg-[#0a0f1e] px-2.5 py-0.5 text-xs font-medium text-[#9ca3af]">
+                  {(alerts!.high_overtime.length ?? 0) +
+                    (alerts!.poor_morale.length ?? 0) +
+                    (alerts!.missing_report.length ?? 0)}{" "}
+                  items
+                </span>
+              </div>
+              <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-3">
                 {alerts!.high_overtime.length > 0 ? (
-                  <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
-                    <h3 className="text-sm font-semibold text-amber-200">High overtime (&gt;15h / week)</h3>
-                    <ul className="mt-2 space-y-1 text-sm text-amber-100/90">
+                  <AlertRow
+                    title="High overtime"
+                    description="Branches above 15h this week"
+                    tone="amber"
+                  >
+                    <div className="flex flex-wrap gap-2">
                       {alerts!.high_overtime.map((b) => (
-                        <li key={b.branch_id}>
-                          {b.branch_name}: <strong>{b.overtime_hours}h</strong>
-                        </li>
+                        <span
+                          key={b.branch_id}
+                          className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5"
+                        >
+                          <BranchBadge branchName={b.branch_name} variant="inline" />
+                          <span className="text-xs font-semibold text-amber-100">{b.overtime_hours}h</span>
+                        </span>
                       ))}
-                    </ul>
-                  </div>
+                    </div>
+                  </AlertRow>
                 ) : null}
                 {alerts!.poor_morale.length > 0 ? (
-                  <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4">
-                    <h3 className="text-sm font-semibold text-red-200">Poor morale reported</h3>
-                    <ul className="mt-2 space-y-1 text-sm text-red-100/90">
+                  <AlertRow title="Poor morale" description="Reported in recent HR submissions" tone="red">
+                    <div className="flex flex-wrap gap-2">
                       {alerts!.poor_morale.map((b) => (
-                        <li key={b.branch_id}>{b.branch_name}</li>
+                        <BranchAlertChip key={b.branch_id} branchName={b.branch_name} />
                       ))}
-                    </ul>
-                  </div>
+                    </div>
+                  </AlertRow>
                 ) : null}
                 {alerts!.missing_report.length > 0 ? (
-                  <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-                    <h3 className="text-sm font-semibold text-yellow-200">No HR report this week</h3>
-                    <ul className="mt-2 space-y-1 text-sm text-yellow-100/90">
+                  <AlertRow
+                    title="Missing HR report"
+                    description={`${alerts!.missing_report.length} branch${alerts!.missing_report.length === 1 ? "" : "es"} without a submission this week`}
+                    tone="yellow"
+                  >
+                    <div className="bw-scrollbar flex max-h-28 flex-wrap gap-2 overflow-y-auto pr-1">
                       {alerts!.missing_report.map((b) => (
-                        <li key={b.branch_id}>{b.branch_name}</li>
+                        <BranchAlertChip key={b.branch_id} branchName={b.branch_name} />
                       ))}
-                    </ul>
-                  </div>
+                    </div>
+                  </AlertRow>
                 ) : null}
               </div>
             </section>
           ) : null}
 
-          <section className="overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
+          <section className="bw-scrollbar overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
             <h2 className="border-b border-[#1f2937] px-4 py-3 text-lg font-semibold text-white">
               Active HR requests
             </h2>
@@ -195,7 +265,7 @@ export function HrDashboard() {
                       <td className="px-4 py-3">{r.period}</td>
                       <td className="px-4 py-3">{r.due_date}</td>
                       <td className="px-4 py-3 capitalize">{r.status}</td>
-                      <td className="px-4 py-3">{r.submitted_by_name ?? "â€”"}</td>
+                      <td className="px-4 py-3">{r.submitted_by_name ?? "—"}</td>
                       <td className="px-4 py-3">
                         {r.report_id ? (
                           <Link
@@ -215,7 +285,7 @@ export function HrDashboard() {
             </table>
           </section>
 
-          <section className="overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
+          <section className="bw-scrollbar overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
             <h2 className="border-b border-[#1f2937] px-4 py-3 text-lg font-semibold text-white">
               Recent HR reports
             </h2>
@@ -245,7 +315,7 @@ export function HrDashboard() {
                       <td className="px-4 py-3">{r.week}</td>
                       <td className="px-4 py-3">{formatDate(r.submitted_at)}</td>
                       <td className="px-4 py-3">{r.overtime_hours}</td>
-                      <td className="px-4 py-3 capitalize">{r.morale ?? "â€”"}</td>
+                      <td className="px-4 py-3 capitalize">{r.morale ?? "—"}</td>
                       <td className="px-4 py-3">{r.absences}</td>
                       <td className="px-4 py-3">
                         <Link href={`/hr/reports/${r.report_id}`} className="text-[#a5b4fc] hover:underline">
