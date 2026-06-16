@@ -77,12 +77,40 @@ export async function fetchHrAnalytics(
   let entriesQ = supabase
     .from("staff_report_entries")
     .select(
-      "week_start, period_end, hours_worked, overtime_hours, absences, late_arrivals, branch_id, staff_member_id, staff_members(full_name)",
+      "week_start, period_end, hours_worked, overtime_hours, absences, late_arrivals, branch_id, staff_member_id, staff_members(full_name, branch_id)",
     )
     .gte("week_start", prefetchYmd)
     .lte("week_start", endYmd);
 
-  if (filters.branchId) entriesQ = entriesQ.eq("branch_id", filters.branchId);
+  if (filters.branchId) {
+    const { data: branchStaff } = await supabase
+      .from("staff_members")
+      .select("id")
+      .eq("branch_id", filters.branchId);
+    const staffIds = (branchStaff ?? []).map((s) => s.id);
+    if (!staffIds.length) {
+      return {
+        period_label: label,
+        kpis: {
+          total_overtime_hours: 0,
+          total_absences: 0,
+          total_late_arrivals: 0,
+          top_overtime_staff: null,
+        },
+        overtime_by_branch: branchList.map((b) => ({ branch_name: b.name, overtime_hours: 0 })),
+        attendance_trend: [],
+        morale_by_week: [],
+        workload_by_branch: branchList.map((b) => ({
+          branch_name: b.name,
+          hours_worked: 0,
+          overtime_hours: 0,
+        })),
+        top_overtime_staff: [],
+        top_absences_staff: [],
+      };
+    }
+    entriesQ = entriesQ.in("staff_member_id", staffIds);
+  }
   const { data: rawEntries } = await entriesQ;
   const entries = (rawEntries ?? []).filter((e) =>
     entryInPeriod(String(e.week_start), e.period_end as string | null, startYmd, endYmd),
@@ -114,7 +142,8 @@ export async function fetchHrAnalytics(
   }
 
   for (const e of entries ?? []) {
-    const bid = e.branch_id as string;
+    const sm = e.staff_members as { full_name?: string; branch_id?: string } | null;
+    const bid = (sm?.branch_id ?? e.branch_id) as string;
     const ot = Number(e.overtime_hours ?? 0);
     const abs = Number(e.absences ?? 0);
     const late = Number(e.late_arrivals ?? 0);
@@ -131,7 +160,6 @@ export async function fetchHrAnalytics(
     att.late_arrivals += late;
     attendanceByWeek.set(wk, att);
 
-    const sm = e.staff_members as { full_name?: string } | null;
     const name = sm?.full_name ?? "Staff";
     const sid = e.staff_member_id as string;
     if (sid) {

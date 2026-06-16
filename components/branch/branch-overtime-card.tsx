@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 import type { OvertimeSummary } from "@/lib/branch/overtime-summary";
+import { formatStaffHours } from "@/lib/staff/format-hours";
 
 function formatRelativeUpload(iso: string | null) {
   if (!iso) return null;
   try {
-    return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(iso));
+    return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(iso));
   } catch {
     return null;
   }
@@ -21,18 +22,24 @@ export function BranchOvertimeCard({ overtime }: { overtime: OvertimeSummary }) 
         <span className="text-xs uppercase tracking-wide text-[#6b7280]">{overtime.monthLabel}</span>
       </div>
       <p className="mt-2 text-3xl font-bold text-amber-400">
-        {overtime.monthHours}h <span className="text-sm font-normal text-[#9ca3af]">team total</span>
+        {formatStaffHours(overtime.monthHours)}h{" "}
+        <span className="text-sm font-normal text-[#9ca3af]">diesen Monat</span>
+      </p>
+      <p className="mt-1 text-sm text-[#9ca3af]">
+        {overtime.staffWithOvertimeMonth} Mitarbeiter mit Überstunden ·{" "}
+        {formatStaffHours(overtime.allTimeHours)}h gesamt
       </p>
       {overtime.nearLimitCount > 0 ? (
-        <p className="mt-1 text-sm text-amber-300">
-          {overtime.nearLimitCount} employee{overtime.nearLimitCount === 1 ? "" : "s"} nearing the limit
+        <p className="mt-2 text-sm text-amber-300">
+          {overtime.nearLimitCount} nahe am Limit
+          {overtime.nearLimitNames.length > 0 ? `: ${overtime.nearLimitNames.join(", ")}` : ""}
         </p>
       ) : (
-        <p className="mt-1 text-sm text-[#6b7280]">No employees nearing the limit</p>
+        <p className="mt-2 text-sm text-[#6b7280]">Keine Mitarbeiter nahe am Limit</p>
       )}
-      {uploaded ? <p className="mt-1 text-xs text-[#6b7280]">Last entry uploaded {uploaded}</p> : null}
+      {uploaded ? <p className="mt-1 text-xs text-[#6b7280]">Letzter Eintrag: {uploaded}</p> : null}
       <Link href="/branch/staff" className="mt-4 inline-flex text-sm font-medium text-[#a5b4fc] hover:text-[#c7d2fe]">
-        Open Staff →
+        Personal öffnen →
       </Link>
     </div>
   );

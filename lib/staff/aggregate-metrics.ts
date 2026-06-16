@@ -8,6 +8,7 @@ export type StaffReportRow = {
   late_arrivals: number | null;
   week_start: string;
   period_end?: string | null;
+  created_at?: string | null;
 };
 
 export type StaffMetrics = {

@@ -1,59 +1,133 @@
 import { createServiceRoleClient } from "@/lib/supabase";
+import {
+  aggregateStaffMetrics,
+  filterReportRowsByPeriod,
+  type StaffReportRow,
+} from "@/lib/staff/aggregate-metrics";
+import { fetchBranchReportEntries } from "@/lib/staff/fetch-branch-entries";
+import { roundStaffHours } from "@/lib/staff/format-hours";
 import { entryInPeriod } from "@/lib/staff/period";
 
 export type OvertimeSummary = {
   monthHours: number;
+  allTimeHours: number;
+  staffWithOvertimeMonth: number;
   nearLimitCount: number;
+  nearLimitNames: string[];
   lastUpdated: string | null;
   monthLabel: string;
+  period: { from: string; to: string };
 };
 
 const NEAR_LIMIT_THRESHOLD_HOURS = 10;
 
-function currentMonthRange(): { start: string; end: string; label: string } {
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const label = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(now);
-  return { start: iso(start), end: iso(end), label };
+function berlinTodayYmd(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+export function getBerlinMonthRange(): { start: string; end: string; label: string } {
+  return berlinMonthRange();
+}
+
+function berlinMonthRange(): { start: string; end: string; label: string } {
+  const today = berlinTodayYmd();
+  const parts = today.split("-").map((x) => parseInt(x, 10));
+  const y = parts[0] ?? new Date().getFullYear();
+  const m = parts[1] ?? 1;
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const end = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const label = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${start}T12:00:00Z`));
+  return { start, end, label };
+}
+
+export function buildOvertimeSummaryFromEntries(
+  entries: StaffReportRow[],
+  staffNames: Map<string, string>,
+  monthRange: { start: string; end: string; label: string },
+): OvertimeSummary {
+  const monthRows = filterReportRowsByPeriod(entries, monthRange.start, monthRange.end);
+  const monthMetrics = aggregateStaffMetrics(monthRows);
+  const allMetrics = aggregateStaffMetrics(entries);
+
+  let monthHours = 0;
+  let staffWithOvertimeMonth = 0;
+  const nearLimit: { name: string; hours: number }[] = [];
+  let lastUpdated: string | null = null;
+
+  for (const row of monthRows) {
+    monthHours += Number(row.overtime_hours ?? 0);
+    if (row.created_at && (!lastUpdated || row.created_at > lastUpdated)) {
+      lastUpdated = row.created_at;
+    }
+  }
+
+  for (const [staffId, metrics] of monthMetrics) {
+    if (metrics.total_overtime > 0) staffWithOvertimeMonth++;
+    if (metrics.total_overtime > NEAR_LIMIT_THRESHOLD_HOURS) {
+      nearLimit.push({
+        name: staffNames.get(staffId) ?? "Mitarbeiter",
+        hours: metrics.total_overtime,
+      });
+    }
+  }
+
+  nearLimit.sort((a, b) => b.hours - a.hours);
+
+  let allTimeHours = 0;
+  for (const metrics of allMetrics.values()) {
+    allTimeHours += metrics.total_overtime;
+  }
+
+  return {
+    monthHours: roundStaffHours(monthHours),
+    allTimeHours: roundStaffHours(allTimeHours),
+    staffWithOvertimeMonth,
+    nearLimitCount: nearLimit.length,
+    nearLimitNames: nearLimit.slice(0, 3).map((n) => n.name),
+    lastUpdated,
+    monthLabel: monthRange.label,
+    period: { from: monthRange.start, to: monthRange.end },
+  };
 }
 
 export async function getOvertimeSummary(branchId: string): Promise<OvertimeSummary> {
   const supabase = createServiceRoleClient();
-  const { start, end, label } = currentMonthRange();
+  const monthRange = berlinMonthRange();
 
-  const { data: entries } = await supabase
-    .from("staff_report_entries")
-    .select("staff_member_id, overtime_hours, week_start, period_end, created_at")
-    .eq("branch_id", branchId)
-    .lte("week_start", end);
+  const [{ data: staff }, entries] = await Promise.all([
+    supabase.from("staff_members").select("id, full_name").eq("branch_id", branchId),
+    fetchBranchReportEntries(supabase, branchId),
+  ]);
 
-  const inMonth = (entries ?? []).filter((e) =>
-    entryInPeriod(String(e.week_start), e.period_end as string | null, start, end),
-  );
+  const staffNames = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
 
-  let monthHours = 0;
-  let lastUpdated: string | null = null;
-  const byStaff = new Map<string, number>();
+  return buildOvertimeSummaryFromEntries(entries, staffNames, monthRange);
+}
 
-  for (const e of inMonth) {
+/** For staff profile: split totals by current month vs all entries. */
+export function staffOvertimeTotals(
+  entries: StaffReportRow[],
+  monthFrom: string,
+  monthTo: string,
+): { month: number; allTime: number } {
+  let allTime = 0;
+  let month = 0;
+  for (const e of entries) {
     const ot = Number(e.overtime_hours ?? 0);
-    monthHours += ot;
-    if (e.staff_member_id) {
-      byStaff.set(e.staff_member_id, (byStaff.get(e.staff_member_id) ?? 0) + ot);
-    }
-    if (e.created_at && (!lastUpdated || e.created_at > lastUpdated)) {
-      lastUpdated = e.created_at;
+    allTime += ot;
+    if (entryInPeriod(e.week_start, e.period_end, monthFrom, monthTo)) {
+      month += ot;
     }
   }
-
-  const nearLimitCount = [...byStaff.values()].filter((h) => h > NEAR_LIMIT_THRESHOLD_HOURS).length;
-
-  return {
-    monthHours: Math.round(monthHours * 10) / 10,
-    nearLimitCount,
-    lastUpdated,
-    monthLabel: label,
-  };
+  return { month: roundStaffHours(month), allTime: roundStaffHours(allTime) };
 }

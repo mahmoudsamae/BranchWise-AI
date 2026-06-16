@@ -20,9 +20,13 @@ import { getSessionUserServer } from "@/lib/session";
 
 const EMPTY_OVERTIME: OvertimeSummary = {
   monthHours: 0,
+  allTimeHours: 0,
+  staffWithOvertimeMonth: 0,
   nearLimitCount: 0,
+  nearLimitNames: [],
   lastUpdated: null,
-  monthLabel: new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date()),
+  monthLabel: new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "Europe/Berlin" }).format(new Date()),
+  period: { from: "", to: "" },
 };
 
 const EMPTY_REVIEWS_NEEDING_REPLY: ReviewsNeedingReplyPayload = {

@@ -530,9 +530,13 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
     ],
     overtime: {
       monthHours: 142,
+      allTimeHours: 318,
+      staffWithOvertimeMonth: 4,
       nearLimitCount: 2,
+      nearLimitNames: ["Anna M.", "Jonas K."],
       lastUpdated: "2026-06-01T10:00:00.000Z",
-      monthLabel: "June 2026",
+      monthLabel: "Juni 2026",
+      period: { from: "2026-06-01", to: "2026-06-30" },
     },
     issues: [
       {

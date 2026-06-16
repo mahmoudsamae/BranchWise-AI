@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { StaffReportList } from "@/components/staff/staff-report-list";
 import { StaffDiscussionAlerts } from "@/components/notifications/staff-discussion-alerts";
+import { formatStaffHours } from "@/lib/staff/format-hours";
 import { currentCalendarWeek, formatPeriodLabel } from "@/lib/staff/period";
 
 type StaffMember = {
@@ -30,6 +31,15 @@ type StaffMember = {
   employment_type: string | null;
   start_date: string | null;
   is_active: boolean;
+};
+
+type ProfileTotals = {
+  hours: number;
+  overtime: number;
+  month_overtime: number;
+  absences: number;
+  late: number;
+  month_label: string;
 };
 
 type HistoryEntry = {
@@ -57,6 +67,7 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
 
   const [staff, setStaff] = useState<StaffMember | null>(null);
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
+  const [profileTotals, setProfileTotals] = useState<ProfileTotals | null>(null);
   const [discussionUnread, setDiscussionUnread] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +97,11 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
         staff?: StaffMember;
         entries?: HistoryEntry[];
         discussion_unread?: Record<string, number>;
+        totals?: ProfileTotals;
       };
       setStaff(j.staff ?? null);
       setEntries(j.entries ?? []);
+      setProfileTotals(j.totals ?? null);
       setDiscussionUnread(j.discussion_unread ?? {});
     } catch {
       setError("Request failed");
@@ -114,18 +127,6 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
         })),
     [entries],
   );
-
-  const totals = useMemo(() => {
-    return entries.reduce(
-      (acc, e) => ({
-        hours: acc.hours + (e.hours_worked ?? 0),
-        overtime: acc.overtime + (e.overtime_hours ?? 0),
-        absences: acc.absences + (e.absences ?? 0),
-        late: acc.late + (e.late_arrivals ?? 0),
-      }),
-      { hours: 0, overtime: 0, absences: 0, late: 0 },
-    );
-  }, [entries]);
 
   async function submitReport() {
     setSaving(true);
@@ -204,19 +205,25 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
           <p className="text-xs uppercase text-[#6b7280]">Total hours</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.hours}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{formatStaffHours(profileTotals?.hours ?? 0)}</p>
+          <p className="mt-1 text-xs text-[#6b7280]">All reports</p>
         </article>
         <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Total overtime</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.overtime}</p>
+          <p className="text-xs uppercase text-[#6b7280]">Overtime</p>
+          <p className="mt-1 text-2xl font-bold text-amber-400">
+            {formatStaffHours(profileTotals?.month_overtime ?? 0)}h
+          </p>
+          <p className="mt-1 text-xs text-[#6b7280]">
+            {profileTotals?.month_label ?? "This month"} · {formatStaffHours(profileTotals?.overtime ?? 0)}h total
+          </p>
         </article>
         <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
           <p className="text-xs uppercase text-[#6b7280]">Absences</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.absences}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{profileTotals?.absences ?? 0}</p>
         </article>
         <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
           <p className="text-xs uppercase text-[#6b7280]">Late arrivals</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.late}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{profileTotals?.late ?? 0}</p>
         </article>
       </section>
 
