@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -73,6 +74,12 @@ function LoginForm() {
             Sign in
           </Button>
         </form>
+        <p className="mt-6 text-center text-sm text-[#9ca3af]">
+          No account?{" "}
+          <Link href="/demo" className="font-semibold text-violet-300 hover:text-violet-200 hover:underline">
+            Try the live demo
+          </Link>
+        </p>
       </Card>
     </div>
   );

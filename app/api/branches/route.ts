@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoBranches } from "@/lib/demo/mock-data";
 import { requireGmHrOrSuperAdminApi } from "@/lib/gm-hr/require-session";
 import { createServiceRoleClient } from "@/lib/supabase";
 
 export async function GET() {
   const auth = await requireGmHrOrSuperAdminApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoBranches());
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase

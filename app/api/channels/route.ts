@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoChannels } from "@/lib/demo/mock-data";
 import { canAccessChannel } from "@/lib/communication/channel-access";
 import { requireGeneralManagerApi, requireHubUserApi } from "@/lib/communication/require-session";
 import { countMembersForRoles, unreadCountForChannels } from "@/lib/communication/hub-service";
@@ -18,6 +20,7 @@ function slugify(name: string) {
 export async function GET() {
   const auth = await requireHubUserApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoChannels());
 
   try {
     const supabase = createServiceRoleClient();

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { blockDemoMutation, isDemoSession } from "@/lib/demo/guard";
+import { demoChannelMessages } from "@/lib/demo/mock-data";
 import { requireHubUserApi } from "@/lib/communication/require-session";
 import { enrichMessages, getChannelForUser } from "@/lib/communication/hub-service";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -10,6 +12,7 @@ type RouteCtx = { params: Promise<{ id: string }> };
 export async function GET(request: Request, ctx: RouteCtx) {
   const auth = await requireHubUserApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoChannelMessages());
 
   const { id: channelId } = await ctx.params;
   const role = auth.session.role as AppRole;
@@ -56,6 +59,8 @@ export async function GET(request: Request, ctx: RouteCtx) {
 export async function POST(request: Request, ctx: RouteCtx) {
   const auth = await requireHubUserApi();
   if (!auth.ok) return auth.response;
+  const blocked = blockDemoMutation(auth.session);
+  if (blocked) return blocked;
 
   const { id: channelId } = await ctx.params;
   const role = auth.session.role as AppRole;

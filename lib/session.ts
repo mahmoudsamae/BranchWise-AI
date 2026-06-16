@@ -10,6 +10,7 @@ export type SessionPayload = {
   email: string;
   role: AppRole;
   branch_id: string | null;
+  demo?: boolean;
 };
 
 export function getJwtSecretKey() {
@@ -26,6 +27,7 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
     email: payload.email,
     role: payload.role,
     branch_id: payload.branch_id,
+    ...(payload.demo ? { demo: true } : {}),
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.id)
@@ -49,8 +51,9 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 
     if (!id || !email || !role) return null;
     if (!isAppRole(role)) return null;
+    const demo = payload.demo === true;
 
-    return { id, email, role, branch_id };
+    return { id, email, role, branch_id, ...(demo ? { demo: true } : {}) };
   } catch {
     return null;
   }

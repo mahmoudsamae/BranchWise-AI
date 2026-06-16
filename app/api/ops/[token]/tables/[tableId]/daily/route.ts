@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isTodayWorkDate } from "@/lib/branch-ops/dates";
 import { resolveBranchOpsToken, todayWorkDate } from "@/lib/branch-ops/resolve-token";
 import { createServiceRoleClient } from "@/lib/supabase";
 
@@ -25,6 +26,9 @@ export async function POST(request: Request, { params }: Params) {
   if (!staffMemberId) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 });
 
   const workDate = body.work_date?.trim() || todayWorkDate();
+  if (!isTodayWorkDate(workDate)) {
+    return NextResponse.json({ error: "Nur der heutige Tag kann bearbeitet werden" }, { status: 403 });
+  }
 
   try {
     const supabase = createServiceRoleClient();

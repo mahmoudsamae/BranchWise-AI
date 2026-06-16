@@ -1,11 +1,7 @@
 import { getBreakfastSupabase } from "@/lib/breakfast-supabase";
 
-import {
-  isBerlinYmdInRange,
-  looseUtcWindow,
-  toBerlinYmd,
-} from "./berlin-range";
 import { afterHoursPct, computeTimeMetrics } from "./time-metrics";
+import { fetchAllBreakfastOrders, fetchAllOrderItems } from "./paginated-orders";
 import type { BreakfastAnalyticsData } from "./types";
 
 export type BreakfastDateWindow = { startYmd: string; endYmd: string };
@@ -49,12 +45,12 @@ const emptyAggregate = (): BreakfastDbAggregate => ({
   slowestWeekday: null,
 });
 
-type OrderRow = { id: string; total_amount: number | string; created_at: string };
+type OrderRow = { id: number; total_amount: number | string; created_at: string; pickup_date: string };
 
 type ItemRow = {
   quantity: number;
   unit_price: number | string;
-  order_id: string;
+  order_id: number;
   products: { name: string; category?: string } | { name: string; category?: string }[] | null;
   menus: { name: string } | { name: string }[] | null;
 };
@@ -65,7 +61,7 @@ function relName(rel: { name: string } | { name: string }[] | null | undefined):
   return row?.name ?? null;
 }
 
-/** Read-only via Supabase API. */
+/** Read-only via Supabase API — fetches every order in the pickup_date window (paginated). */
 export async function queryBreakfastBranchData(
   branchSlug: string,
   window: BreakfastDateWindow,
@@ -73,7 +69,6 @@ export async function queryBreakfastBranchData(
   const supabase = getBreakfastSupabase();
   const { startYmd, endYmd } = window;
   const slug = branchSlug.trim().toLowerCase();
-  const { startIso, endIso } = looseUtcWindow(startYmd, endYmd);
 
   const { data: branch, error: branchErr } = await supabase
     .from("branches")
@@ -84,41 +79,20 @@ export async function queryBreakfastBranchData(
   if (branchErr) throw new Error(branchErr.message);
   if (!branch?.id) return emptyAggregate();
 
-  const { data: rawOrders, error: ordersErr } = await supabase
-    .from("orders")
-    .select("id, total_amount, created_at")
-    .eq("branch_id", branch.id)
-    .gte("created_at", startIso)
-    .lte("created_at", endIso);
-
-  if (ordersErr) throw new Error(ordersErr.message);
-
-  const orders = (rawOrders ?? []).filter((o: OrderRow) =>
-    isBerlinYmdInRange(toBerlinYmd(o.created_at), startYmd, endYmd),
+  const orders = await fetchAllBreakfastOrders<OrderRow>(
+    supabase,
+    branch.id,
+    "id, total_amount, created_at, pickup_date",
+    { pickup_gte: startYmd, pickup_lte: endYmd },
   );
 
   const orderIds = orders.map((o) => o.id);
-  let items: ItemRow[] = [];
-
-  if (orderIds.length > 0) {
-    const chunkSize = 200;
-    for (let i = 0; i < orderIds.length; i += chunkSize) {
-      const chunk = orderIds.slice(i, i + chunkSize);
-      const { data: chunkItems, error: itemsErr } = await supabase
-        .from("order_items")
-        .select("quantity, unit_price, order_id, products(name, category), menus(name)")
-        .in("order_id", chunk)
-        .gt("quantity", 0);
-
-      if (itemsErr) throw new Error(itemsErr.message);
-      items = items.concat((chunkItems ?? []) as unknown as ItemRow[]);
-    }
-  }
+  const items = orderIds.length > 0 ? await fetchAllOrderItems(supabase, orderIds) : [];
 
   const time = computeTimeMetrics(orders);
 
   const productMap = new Map<string, { count: number; revenue: number }>();
-  for (const item of items) {
+  for (const item of items as ItemRow[]) {
     const name = relName(item.products) ?? relName(item.menus) ?? "Unknown";
     const qty = toNum(item.quantity);
     const rev = qty * toNum(item.unit_price);
@@ -137,7 +111,7 @@ export async function queryBreakfastBranchData(
 
   const dayMap = new Map<string, number>();
   for (const o of orders) {
-    const d = toBerlinYmd(o.created_at);
+    const d = o.pickup_date;
     dayMap.set(d, (dayMap.get(d) ?? 0) + toNum(o.total_amount));
   }
   const revenue_per_day = [...dayMap.entries()]

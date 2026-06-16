@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoAnalyticsKpis } from "@/lib/demo/mock-data";
 import { getAnalyticsKpis } from "@/lib/gm-hr/analytics-service";
 import { requireGmOrHrApi } from "@/lib/gm-hr/require-session";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -7,6 +9,7 @@ import { createServiceRoleClient } from "@/lib/supabase";
 export async function GET(request: Request) {
   const auth = await requireGmOrHrApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoAnalyticsKpis());
 
   const url = new URL(request.url);
   const hrOnly = auth.session.role === "hr";

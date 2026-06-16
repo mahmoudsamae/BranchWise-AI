@@ -55,6 +55,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/login" || pathname.startsWith("/login/")) {
     return session ? NextResponse.redirect(new URL(home(session.role), request.url)) : NextResponse.next();
   }
+  if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
   if (!session) {
     if (pathname === "/") return NextResponse.next();
     if (protectedApi(pathname)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

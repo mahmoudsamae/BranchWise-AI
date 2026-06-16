@@ -1,10 +1,11 @@
 import type { OpsColumn } from "@/lib/branch-ops/columns";
+import type { OpsTimeGroup } from "@/lib/branch-ops/time-groups";
 
 export type OpsTablePreset = {
   name: string;
   table_type: "log" | "daily";
   columns: OpsColumn[];
-  daily_items?: string[];
+  daily_items?: { label: string; time_group: OpsTimeGroup; time_hint?: string }[];
 };
 
 export const OPS_TABLE_PRESETS: OpsTablePreset[] = [
@@ -21,15 +22,22 @@ export const OPS_TABLE_PRESETS: OpsTablePreset[] = [
     ],
   },
   {
-    name: "Daily Reception Tasks",
+    name: "Reception",
     table_type: "daily",
     columns: [],
     daily_items: [
-      "Backen / bakery prep (from 06:00)",
-      "Fill coffee machine",
-      "Refill water station",
-      "Clean reception area",
-      "Check reservation list",
+      { label: "Kaffeemaschine vorbereiten", time_group: "morning", time_hint: "Wasser nachfüllen, Kaffeebohnen prüfen" },
+      { label: "Empfangsbereich reinigen", time_group: "morning" },
+      { label: "Reservierungsliste prüfen", time_group: "morning" },
+      { label: "Wasserstation auffüllen", time_group: "morning" },
+      { label: "Mittags-Check-in vorbereiten", time_group: "midday" },
+      { label: "Gästefeedback sammeln", time_group: "midday" },
+      { label: "Shop-Bestand prüfen", time_group: "midday" },
+      { label: "Telefon & E-Mail abarbeiten", time_group: "midday" },
+      { label: "Abend-Übergabe vorbereiten", time_group: "evening" },
+      { label: "Kasse abrechnen", time_group: "evening" },
+      { label: "Empfang für nächsten Tag vorbereiten", time_group: "evening" },
+      { label: "Schlüssel & Pfand kontrollieren", time_group: "evening" },
     ],
   },
   {

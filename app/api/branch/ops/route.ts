@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { requireBranchManagerApi } from "@/lib/branch/require-session";
 import { parseOpsColumns } from "@/lib/branch-ops/columns";
-import { appBaseUrlFromRequest } from "@/lib/email/app-url";
+import { isOpsTimeGroup } from "@/lib/branch-ops/time-groups";
+import { publicOpsUrl } from "@/lib/email/app-url";
 import { generateFormToken } from "@/lib/company-forms/token";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { asJson } from "@/lib/supabase-json";
@@ -42,11 +43,14 @@ export async function GET(request: Request) {
     if (tablesError) return NextResponse.json({ error: tablesError.message }, { status: 500 });
 
     const dailyTableIds = (tables ?? []).filter((t) => t.table_type === "daily").map((t) => t.id);
-    const dailyItemsByTable = new Map<string, { id: string; label: string; time_hint: string | null; sort_order: number }[]>();
+    const dailyItemsByTable = new Map<
+      string,
+      { id: string; label: string; time_hint: string | null; time_group: string; sort_order: number }[]
+    >();
     if (dailyTableIds.length > 0) {
       const { data: dailyItems } = await supabase
         .from("branch_ops_daily_items")
-        .select("id, table_id, label, time_hint, sort_order")
+        .select("id, table_id, label, time_hint, time_group, sort_order")
         .in("table_id", dailyTableIds)
         .eq("is_active", true)
         .order("sort_order");
@@ -57,9 +61,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const base = appBaseUrlFromRequest(request);
     return NextResponse.json({
-      ops_link: `${base}/ops/${tokenRow.token}`,
+      ops_link: publicOpsUrl(tokenRow.token, request),
       token: tokenRow.token,
       tables: (tables ?? []).map((t) => ({
         ...t,
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
     name?: string;
     table_type?: string;
     columns?: unknown;
-    daily_items?: string[];
+    daily_items?: string[] | { label: string; time_hint?: string; time_group?: string }[];
     preset?: string;
   };
   try {
@@ -124,9 +127,23 @@ export async function POST(request: Request) {
 
     if (tableType === "daily" && Array.isArray(body.daily_items)) {
       const items = body.daily_items
-        .map((label) => String(label).trim())
-        .filter(Boolean)
-        .map((label, i) => ({ table_id: table.id, label, sort_order: i }));
+        .map((entry, i) => {
+          if (typeof entry === "string") {
+            const label = entry.trim();
+            return label ? { table_id: table.id, label, sort_order: i, time_group: "morning" as const } : null;
+          }
+          const label = String(entry.label ?? "").trim();
+          if (!label) return null;
+          const group = entry.time_group && isOpsTimeGroup(entry.time_group) ? entry.time_group : "morning";
+          return {
+            table_id: table.id,
+            label,
+            time_hint: entry.time_hint ? String(entry.time_hint).trim() : null,
+            time_group: group,
+            sort_order: i,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null);
       if (items.length > 0) {
         await supabase.from("branch_ops_daily_items").insert(items);
       }

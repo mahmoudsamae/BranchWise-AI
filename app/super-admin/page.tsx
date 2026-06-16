@@ -1,3 +1,6 @@
+import { demoSuperAdminDashboard } from "@/lib/demo/mock-data";
+import { isDemoSession } from "@/lib/demo/guard";
+import { getSessionUserServer } from "@/lib/session";
 import { createServiceRoleClient } from "@/lib/supabase";
 import type { AppRole } from "@/types/user";
 
@@ -43,7 +46,16 @@ export default async function SuperAdminDashboardPage() {
   }[] = [];
   let error: string | null = null;
 
-  try {
+  const session = await getSessionUserServer();
+  if (isDemoSession(session)) {
+    const demo = demoSuperAdminDashboard();
+    totalUsers = demo.totalUsers;
+    totalBranches = demo.totalBranches;
+    gmCount = demo.gmCount;
+    bmCount = demo.bmCount;
+    recent = demo.recent;
+    error = demo.error;
+  } else try {
     const supabase = createServiceRoleClient();
     const [uc, bc, gmc, bmc, recentRows] = await Promise.all([
       supabase.from("users").select("*", { count: "exact", head: true }),

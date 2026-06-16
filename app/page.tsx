@@ -14,12 +14,20 @@ export default function HomePage() {
           <Link href="/" className="text-lg font-bold tracking-tight text-white">
             BranchWise AI
           </Link>
-          <Link
-            href="/login"
-            className="rounded-lg border border-indigo-500/60 bg-transparent px-4 py-2 text-sm font-semibold text-indigo-400 transition hover:bg-indigo-600/15"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/demo"
+              className="rounded-lg border border-violet-500/50 bg-violet-600/15 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-600/25"
+            >
+              Live Demo
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-lg border border-indigo-500/60 bg-transparent px-4 py-2 text-sm font-semibold text-indigo-400 transition hover:bg-indigo-600/15"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -38,6 +46,12 @@ export default function HomePage() {
                 clarity, not chaos.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/demo"
+                  className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 transition hover:bg-violet-500"
+                >
+                  Live Demo
+                </Link>
                 <Link
                   href="/login"
                   className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500"
@@ -150,13 +164,21 @@ export default function HomePage() {
         <section className="border-t border-[#1f2937] py-16">
           <div className="mx-auto max-w-3xl rounded-2xl border border-[#1f2937] bg-[#111827] px-6 py-12 text-center sm:px-10 sm:py-14">
             <h2 className="text-2xl font-semibold text-white sm:text-3xl">Ready to bring clarity to your operations?</h2>
-            <p className="mt-3 text-base text-gray-400">Sign in and start managing smarter.</p>
-            <Link
-              href="/login"
-              className="mt-8 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-indigo-500"
-            >
-              Get started
-            </Link>
+            <p className="mt-3 text-base text-gray-400">Try the interactive demo or sign in to your workspace.</p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/demo"
+                className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-violet-500"
+              >
+                Live Demo
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-lg border border-indigo-500/50 px-8 py-3.5 text-base font-semibold text-indigo-300 transition hover:bg-indigo-600/15"
+              >
+                Sign in
+              </Link>
+            </div>
           </div>
         </section>
 

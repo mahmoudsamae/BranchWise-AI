@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoKiChatReply } from "@/lib/demo/mock-data";
 import { buildKiChatContext, type ContextMode } from "@/lib/ki-chat/build-context";
 import { streamOpenAiChat, type ChatMessage } from "@/lib/ki-chat/openai-stream";
 import { KI_CHAT_SYSTEM_PROMPT } from "@/lib/ki-chat/system-prompt";
@@ -45,6 +47,11 @@ async function consumeKiChatDailyMessage(userId: string): Promise<boolean> {
 export async function POST(request: Request) {
   const auth = await requireGmOrHrApi();
   if (!auth.ok) return auth.response;
+
+  if (isDemoSession(auth.session)) {
+    const reply = demoKiChatReply().reply;
+    return new Response(reply, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {

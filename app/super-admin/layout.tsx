@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { createServiceRoleClient } from "@/lib/supabase";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { isDemoSession } from "@/lib/demo/guard";
+import { resolveWorkspaceProfile } from "@/lib/layout/workspace-profile";
 import { getSessionUserServer } from "@/lib/session";
 import type { AppRole } from "@/types/user";
 
@@ -26,19 +28,11 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   if (!session) redirect("/login?next=/super-admin");
   if (session.role !== "super_admin") redirect(homeForRole(session.role));
 
-  let displayName = session.email;
-  let email = session.email;
-  try {
-    const supabase = createServiceRoleClient();
-    const { data } = await supabase.from("users").select("full_name, email").eq("id", session.id).maybeSingle();
-    if (data?.email) email = data.email;
-    displayName = (data?.full_name && data.full_name.trim()) || data?.email || session.email;
-  } catch {
-    /* missing service key */
-  }
+  const { displayName, email } = await resolveWorkspaceProfile(session);
 
   return (
     <div className="min-h-screen bg-[#0a0f1e] text-[#f9fafb]">
+      {isDemoSession(session) ? <DemoBanner /> : null}
       <SuperAdminSidebar displayName={displayName} email={email} />
       <div className="min-h-screen pt-14 lg:pl-[280px] lg:pt-0">
         <main className="page-enter page-enter-active min-h-screen overflow-y-auto p-6 md:p-8">{children}</main>

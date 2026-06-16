@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { fetchDailyItemsForDate } from "@/lib/branch-ops/fetch-daily-for-date";
 import { resolveBranchOpsToken, todayWorkDate } from "@/lib/branch-ops/resolve-token";
 import { createServiceRoleClient } from "@/lib/supabase";
 
@@ -35,42 +36,12 @@ export async function GET(request: Request, { params }: Params) {
 
     if (tablesRes.error) return NextResponse.json({ error: tablesRes.error.message }, { status: 500 });
 
+    const staffMap = new Map((staffRes.data ?? []).map((s) => [s.id, s.full_name]));
     const tables = [];
     for (const table of tablesRes.data ?? []) {
       if (table.table_type === "daily") {
-        const { data: items } = await supabase
-          .from("branch_ops_daily_items")
-          .select("id, label, time_hint, sort_order")
-          .eq("table_id", table.id)
-          .eq("is_active", true)
-          .order("sort_order");
-
-        const itemIds = (items ?? []).map((i) => i.id);
-        const { data: completions } =
-          itemIds.length > 0
-            ? await supabase
-                .from("branch_ops_daily_completions")
-                .select("daily_item_id, staff_member_id, completed_at")
-                .in("daily_item_id", itemIds)
-                .eq("work_date", workDate)
-            : { data: [] };
-
-        const staffMap = new Map((staffRes.data ?? []).map((s) => [s.id, s.full_name]));
-        const completionMap = new Map((completions ?? []).map((c) => [c.daily_item_id, c]));
-
-        tables.push({
-          ...table,
-          items: (items ?? []).map((item) => {
-            const c = completionMap.get(item.id);
-            return {
-              ...item,
-              completed: Boolean(c),
-              staff_member_id: c?.staff_member_id ?? null,
-              staff_name: c?.staff_member_id ? staffMap.get(c.staff_member_id) ?? null : null,
-              completed_at: c?.completed_at ?? null,
-            };
-          }),
-        });
+        const items = await fetchDailyItemsForDate(supabase, table.id, workDate, staffMap);
+        tables.push({ ...table, items });
       } else {
         const { data: rows } = await supabase
           .from("branch_ops_rows")
@@ -79,7 +50,6 @@ export async function GET(request: Request, { params }: Params) {
           .eq("work_date", workDate)
           .order("created_at", { ascending: false });
 
-        const staffMap = new Map((staffRes.data ?? []).map((s) => [s.id, s.full_name]));
         tables.push({
           ...table,
           rows: (rows ?? []).map((r) => ({

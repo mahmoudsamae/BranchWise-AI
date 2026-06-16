@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { OpsColumnEditor } from "@/components/branch-ops/ops-column-editor";
+import { OpsDailyItemsEditor, itemsToGroupDrafts, mergeGroupDrafts } from "@/components/branch-ops/ops-daily-items-editor";
+import { OpsDailyTaskList, type OpsDailyTaskItem } from "@/components/branch-ops/ops-daily-task-list";
 import { OpsDateNav } from "@/components/branch-ops/ops-date-nav";
+import { formatWorkDate } from "@/lib/branch-ops/dates";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import type { OpsColumn } from "@/lib/branch-ops/columns";
 import { OPS_TABLE_PRESETS } from "@/lib/branch-ops/presets";
 
-type DailyItem = { id?: string; label: string; time_hint?: string | null };
+type DailyItem = { id?: string; label: string; time_hint?: string | null; time_group?: string };
 type OpsTable = {
   id: string;
   name: string;
@@ -28,6 +31,7 @@ type ReviewTable = OpsTable & {
     id: string;
     label: string;
     time_hint: string | null;
+    time_group: "morning" | "midday" | "evening";
     completed: boolean;
     staff_name: string | null;
     completed_at: string | null;
@@ -39,12 +43,16 @@ type EditForm = {
   tableType: "log" | "daily";
   name: string;
   columns: OpsColumn[];
-  dailyText: string;
+  morningText: string;
+  middayText: string;
+  eveningText: string;
+  existingDrafts: { id?: string; label: string; time_group: "morning" | "midday" | "evening" }[];
 };
 
 export function OpsManagerClient() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [opsToken, setOpsToken] = useState("");
   const [opsLink, setOpsLink] = useState("");
   const [tables, setTables] = useState<OpsTable[]>([]);
   const [reviewDate, setReviewDate] = useState(new Date().toISOString().slice(0, 10));
@@ -54,7 +62,9 @@ export function OpsManagerClient() {
 
   const [customName, setCustomName] = useState("");
   const [customType, setCustomType] = useState<"log" | "daily">("log");
-  const [customDailyText, setCustomDailyText] = useState("");
+  const [customMorningText, setCustomMorningText] = useState("");
+  const [customMiddayText, setCustomMiddayText] = useState("");
+  const [customEveningText, setCustomEveningText] = useState("");
   const [customColumns, setCustomColumns] = useState<OpsColumn[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -65,9 +75,9 @@ export function OpsManagerClient() {
     setLoading(true);
     try {
       const res = await fetch("/api/branch/ops");
-      const json = (await res.json()) as { ops_link?: string; tables?: OpsTable[]; error?: string };
+      const json = (await res.json()) as { ops_link?: string; token?: string; tables?: OpsTable[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed");
-      setOpsLink(json.ops_link ?? "");
+      setOpsToken(json.token ?? "");
       setTables((json.tables ?? []).map((t) => ({ ...t, columns: (t.columns ?? []) as OpsColumn[] })));
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Failed", "error");
@@ -93,6 +103,14 @@ export function OpsManagerClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!opsToken) {
+      setOpsLink("");
+      return;
+    }
+    setOpsLink(`${window.location.origin}/ops/${opsToken}`);
+  }, [opsToken]);
 
   useEffect(() => {
     void loadReview();
@@ -142,7 +160,10 @@ export function OpsManagerClient() {
     try {
       const dailyItems =
         customType === "daily"
-          ? customDailyText.split("\n").map((l) => l.trim()).filter(Boolean)
+          ? mergeGroupDrafts(customMorningText, customMiddayText, customEveningText).map((i) => ({
+              label: i.label,
+              time_group: i.time_group,
+            }))
           : undefined;
       const res = await fetch("/api/branch/ops", {
         method: "POST",
@@ -158,7 +179,9 @@ export function OpsManagerClient() {
       if (!res.ok) throw new Error(json.error ?? "Failed");
       showToast("Table created", "success");
       setCustomName("");
-      setCustomDailyText("");
+      setCustomMorningText("");
+      setCustomMiddayText("");
+      setCustomEveningText("");
       setCustomColumns([]);
       await load();
       await loadReview();
@@ -184,12 +207,22 @@ export function OpsManagerClient() {
   }
 
   function startEdit(table: OpsTable) {
+    const grouped = itemsToGroupDrafts(
+      (table.daily_items ?? []).map((i) => ({
+        id: i.id ?? "",
+        label: i.label,
+        time_group: i.time_group,
+      })),
+    );
     setEditForm({
       tableId: table.id,
       tableType: table.table_type,
       name: table.name,
       columns: [...(table.columns ?? [])],
-      dailyText: (table.daily_items ?? []).map((i) => i.label).join("\n"),
+      morningText: grouped.morning,
+      middayText: grouped.midday,
+      eveningText: grouped.evening,
+      existingDrafts: grouped.drafts,
     });
   }
 
@@ -210,11 +243,16 @@ export function OpsManagerClient() {
       if (editForm.tableType === "log") {
         body.columns = editForm.columns;
       } else {
-        body.daily_items = editForm.dailyText
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .map((label) => ({ label }));
+        body.daily_items = mergeGroupDrafts(
+          editForm.morningText,
+          editForm.middayText,
+          editForm.eveningText,
+          editForm.existingDrafts,
+        ).map((item) => ({
+          id: item.id,
+          label: item.label,
+          time_group: item.time_group,
+        }));
       }
 
       const res = await fetch(`/api/branch/ops/tables/${editForm.tableId}`, {
@@ -321,16 +359,14 @@ export function OpsManagerClient() {
         </div>
 
         {customType === "daily" ? (
-          <div>
-            <label className="text-xs text-[#9ca3af]">Tasks (one per line)</label>
-            <textarea
-              value={customDailyText}
-              onChange={(e) => setCustomDailyText(e.target.value)}
-              rows={5}
-              className="mt-1 w-full rounded-lg border border-[#1f2937] bg-[#0a0f1e] px-3 py-2 text-sm text-white"
-              placeholder={"Task 1\nTask 2"}
-            />
-          </div>
+          <OpsDailyItemsEditor
+            morning={customMorningText}
+            midday={customMiddayText}
+            evening={customEveningText}
+            onMorningChange={setCustomMorningText}
+            onMiddayChange={setCustomMiddayText}
+            onEveningChange={setCustomEveningText}
+          />
         ) : (
           <OpsColumnEditor columns={customColumns} onChange={setCustomColumns} />
         )}
@@ -383,15 +419,14 @@ export function OpsManagerClient() {
                     </div>
 
                     {editForm.tableType === "daily" ? (
-                      <div>
-                        <label className="text-xs text-[#9ca3af]">Tasks (one per line)</label>
-                        <textarea
-                          value={editForm.dailyText}
-                          onChange={(e) => setEditForm((f) => f && { ...f, dailyText: e.target.value })}
-                          rows={6}
-                          className="mt-1 w-full rounded-lg border border-[#1f2937] bg-[#0a0f1e] px-3 py-2 text-sm text-white"
-                        />
-                      </div>
+                      <OpsDailyItemsEditor
+                        morning={editForm.morningText}
+                        midday={editForm.middayText}
+                        evening={editForm.eveningText}
+                        onMorningChange={(v) => setEditForm((f) => f && { ...f, morningText: v })}
+                        onMiddayChange={(v) => setEditForm((f) => f && { ...f, middayText: v })}
+                        onEveningChange={(v) => setEditForm((f) => f && { ...f, eveningText: v })}
+                      />
                     ) : (
                       <OpsColumnEditor
                         columns={editForm.columns}
@@ -419,7 +454,10 @@ export function OpsManagerClient() {
       <section className="space-y-4">
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-white">Day review</h2>
-          <p className="text-xs text-[#6b7280]">Each day is saved automatically. Pick a date to see who completed which tasks.</p>
+          <p className="text-xs text-[#6b7280]">
+            Jeder Tag wird automatisch gespeichert. Wähle ein Datum — auch vergangene Tage bleiben erhalten.
+          </p>
+          <p className="text-sm font-medium text-[#a5b4fc]">{formatWorkDate(reviewDate)}</p>
           <OpsDateNav date={reviewDate} onChange={setReviewDate} />
         </div>
         {reviewLoading ? (
@@ -432,30 +470,11 @@ export function OpsManagerClient() {
               <div key={table.id} className="rounded-xl border border-[#1f2937] p-4">
                 <h3 className="font-medium text-white">{table.name}</h3>
                 {table.table_type === "daily" ? (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs text-[#6b7280]">
-                      {(table.items ?? []).filter((i) => i.completed).length}/{(table.items ?? []).length} completed
-                    </p>
-                    <ul className="space-y-1.5 text-sm">
-                      {(table.items ?? []).map((item) => (
-                        <li
-                          key={item.id}
-                          className={`rounded-lg border px-3 py-2 ${item.completed ? "border-emerald-500/20 bg-emerald-950/10 text-emerald-300" : "border-[#1f2937] text-[#9ca3af]"}`}
-                        >
-                          <span className="font-medium">{item.completed ? "✓" : "○"} {item.label}</span>
-                          {item.completed && item.staff_name ? (
-                            <span className="mt-0.5 block text-xs text-emerald-400/90">
-                              {item.staff_name}
-                              {item.completed_at
-                                ? ` · ${new Date(item.completed_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
-                                : ""}
-                            </span>
-                          ) : (
-                            <span className="mt-0.5 block text-xs text-[#6b7280]">Not done</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="mt-3">
+                    <OpsDailyTaskList
+                      items={(table.items ?? []) as OpsDailyTaskItem[]}
+                      readOnly
+                    />
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-[#9ca3af]">{(table.rows ?? []).length} entries on {reviewDate}</p>

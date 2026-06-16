@@ -264,6 +264,7 @@ export type Database = {
           table_id: string
           label: string
           time_hint: string | null
+          time_group: string
           sort_order: number
           is_active: boolean
           created_at: string
@@ -273,6 +274,7 @@ export type Database = {
           table_id: string
           label: string
           time_hint?: string | null
+          time_group?: string
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -282,6 +284,7 @@ export type Database = {
           table_id?: string
           label?: string
           time_hint?: string | null
+          time_group?: string
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -430,6 +433,120 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: true
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      branch_issues: {
+        Row: {
+          id: string
+          branch_id: string
+          kind: string
+          title: string
+          stages: Json
+          current_stage: number
+          status: string
+          cost_estimate: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          kind: string
+          title: string
+          stages?: Json
+          current_stage?: number
+          status?: string
+          cost_estimate?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          kind?: string
+          title?: string
+          stages?: Json
+          current_stage?: number
+          status?: string
+          cost_estimate?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_issues_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      branch_review_explanations: {
+        Row: {
+          id: string
+          branch_id: string
+          review_signature: string
+          author_name: string
+          rating: number
+          review_text: string
+          explanation: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          review_signature: string
+          author_name: string
+          rating: number
+          review_text: string
+          explanation?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          review_signature?: string
+          author_name?: string
+          rating?: number
+          review_text?: string
+          explanation?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_review_explanations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_review_explanations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]

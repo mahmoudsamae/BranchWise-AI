@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoReportDetail } from "@/lib/demo/mock-data";
 import { requireGmOrHrApi } from "@/lib/gm-hr/require-session";
 import { createServiceRoleClient } from "@/lib/supabase";
 
@@ -8,6 +10,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, ctx: Ctx) {
   const auth = await requireGmOrHrApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoReportDetail());
 
   const { id } = await ctx.params;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, FileText, Home, KeyRound, LayoutGrid, MessageCircle, Users } from "lucide-react";
+import { ClipboardList, Coffee, FileText, Home, KeyRound, LayoutGrid, MessageCircle, Users } from "lucide-react";
 
 import { useStaffDiscussionUnread } from "@/components/notifications/use-staff-discussion-unread";
 import { Sidebar, type NavItem } from "@/components/ui/Sidebar";
@@ -19,6 +19,7 @@ export function BranchSidebarClient({
     { href: "/branch/reports", label: "My Reports", icon: <FileText className="size-4" aria-hidden /> },
     { href: "/branch/handover", label: "Shift Handover", icon: <ClipboardList className="size-4" aria-hidden /> },
     { href: "/branch/ops", label: "Branch Ops", icon: <LayoutGrid className="size-4" aria-hidden /> },
+    { href: "/branch/fruhstuck", label: "Frühstück", icon: <Coffee className="size-4" aria-hidden /> },
     {
       href: "/branch/staff",
       label: "Staff Directory",

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { requireBranchManagerApi } from "@/lib/branch/require-session";
 import { parseOpsColumns } from "@/lib/branch-ops/columns";
+import { syncDailyItems, type DailyItemInput } from "@/lib/branch-ops/sync-daily-items";
+import { isOpsTimeGroup } from "@/lib/branch-ops/time-groups";
 import type { Database } from "@/lib/database.types";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { asJson } from "@/lib/supabase-json";
@@ -14,7 +16,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  let body: { name?: string; columns?: unknown; sort_order?: number; is_active?: boolean; daily_items?: { id?: string; label: string; time_hint?: string }[] };
+  let body: {
+    name?: string;
+    columns?: unknown;
+    sort_order?: number;
+    is_active?: boolean;
+    daily_items?: { id?: string; label: string; time_hint?: string; time_group?: string }[];
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -45,16 +53,14 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!data) return NextResponse.json({ error: "Table not found" }, { status: 404 });
 
     if (data.table_type === "daily" && Array.isArray(body.daily_items)) {
-      await supabase.from("branch_ops_daily_items").delete().eq("table_id", id);
-      const items = body.daily_items
-        .map((item, i) => ({
-          table_id: id,
-          label: String(item.label).trim(),
-          time_hint: item.time_hint ? String(item.time_hint).trim() : null,
-          sort_order: i,
-        }))
-        .filter((item) => item.label);
-      if (items.length > 0) await supabase.from("branch_ops_daily_items").insert(items);
+      const items: DailyItemInput[] = body.daily_items.map((item) => ({
+        id: item.id,
+        label: item.label,
+        time_hint: item.time_hint ?? null,
+        time_group: item.time_group && isOpsTimeGroup(item.time_group) ? item.time_group : "morning",
+      }));
+      const synced = await syncDailyItems(supabase, id, items);
+      if (synced.error) return NextResponse.json({ error: synced.error }, { status: 400 });
     }
 
     return NextResponse.json({ table: data });

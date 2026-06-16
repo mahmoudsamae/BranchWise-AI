@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoAiInsight } from "@/lib/demo/mock-data";
 import { resolvePeriod } from "@/lib/gm-hr/analytics-period";
 import { requireGmOrHrApi } from "@/lib/gm-hr/require-session";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -147,6 +149,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const auth = await requireGmOrHrApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) return NextResponse.json(demoAiInsight());
 
   const url = new URL(request.url);
   const branchId = url.searchParams.get("branch_id");

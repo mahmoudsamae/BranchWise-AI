@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
+import { demoNotifications } from "@/lib/demo/mock-data";
 import { requireHrOrBranchManagerApi } from "@/lib/gm-hr/require-session";
 import { totalUnreadStaffDiscussionCount } from "@/lib/staff/discussion-notify";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -9,6 +11,7 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   const session = auth.session;
+  if (isDemoSession(session)) return NextResponse.json(demoNotifications());
 
   const url = new URL(request.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 50);

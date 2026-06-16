@@ -6,9 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { OpsDailyTable } from "@/components/branch-ops/ops-daily-table";
 import { OpsDateNav } from "@/components/branch-ops/ops-date-nav";
 import { OpsLogTable } from "@/components/branch-ops/ops-log-table";
+import type { OpsDailyTaskItem } from "@/components/branch-ops/ops-daily-task-list";
 import { Button } from "@/components/ui/Button";
 import type { OpsColumn } from "@/lib/branch-ops/columns";
-import { isTodayWorkDate, todayWorkDate } from "@/lib/branch-ops/dates";
+import { formatWorkDate, isTodayWorkDate, todayWorkDate } from "@/lib/branch-ops/dates";
 
 type StaffOption = { id: string; full_name: string };
 
@@ -18,14 +19,7 @@ type OpsTable = {
   table_type: "log" | "daily";
   columns: OpsColumn[];
   rows?: { id: string; data: Record<string, unknown>; staff_name: string | null; created_at: string }[];
-  items?: {
-    id: string;
-    label: string;
-    time_hint: string | null;
-    completed: boolean;
-    staff_name: string | null;
-    completed_at: string | null;
-  }[];
+  items?: OpsDailyTaskItem[];
 };
 
 export function PublicOpsHub({ token }: { token: string }) {
@@ -127,9 +121,17 @@ export function PublicOpsHub({ token }: { token: string }) {
             ))}
           </div>
 
-          <div className="rounded-b-xl rounded-tr-xl border border-[#1f2937] bg-[#111827] p-4">
+          <div className="rounded-b-xl rounded-tr-xl border border-[#1f2937] bg-[#111827] p-4 sm:p-6">
             {active ? (
-              active.table_type === "daily" ? (
+              <>
+                <div className="mb-5 border-b border-[#1f2937] pb-4">
+                  <p className="text-xs text-[#6b7280]">Branch Ops › {active.name}</p>
+                  <h2 className="mt-1 text-xl font-bold text-white">{active.name}</h2>
+                  <p className="mt-1 text-sm text-[#9ca3af]">
+                    Tägliche Aufgaben · {formatWorkDate(selectedDate)}
+                  </p>
+                </div>
+                {active.table_type === "daily" ? (
                 <OpsDailyTable
                   tableId={active.id}
                   token={token}
@@ -139,18 +141,19 @@ export function PublicOpsHub({ token }: { token: string }) {
                   staff={staff}
                   onRefresh={() => void load()}
                 />
-              ) : (
-                <OpsLogTable
-                  tableId={active.id}
-                  token={token}
-                  workDate={selectedDate}
-                  readOnly={readOnly}
-                  columns={(active.columns ?? []) as OpsColumn[]}
-                  rows={active.rows ?? []}
-                  staff={staff}
-                  onRefresh={() => void load()}
-                />
-              )
+                ) : (
+                  <OpsLogTable
+                    tableId={active.id}
+                    token={token}
+                    workDate={selectedDate}
+                    readOnly={readOnly}
+                    columns={(active.columns ?? []) as OpsColumn[]}
+                    rows={active.rows ?? []}
+                    staff={staff}
+                    onRefresh={() => void load()}
+                  />
+                )}
+              </>
             ) : null}
           </div>
         </>

@@ -23,12 +23,14 @@ export async function jsonWithSessionCookie(user: {
   email: string;
   role: AppRole;
   branch_id: string | null;
+  demo?: boolean;
 }) {
   const token = await signSessionToken({
     id: user.id,
     email: user.email,
     role: user.role,
     branch_id: user.branch_id,
+    demo: user.demo,
   });
 
   const redirect = redirectForRole(user.role);

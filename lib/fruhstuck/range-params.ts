@@ -37,7 +37,7 @@ export function resolveBreakfastRange(
   startDate: string | null,
   endDate: string | null,
 ): ResolvedBreakfastRange | { error: string } {
-  const raw = (rangeParam ?? "last30days").toLowerCase();
+  const raw = (rangeParam ?? "all").toLowerCase();
 
   if (raw === "all") {
     const today = berlinTodayYmd();
@@ -45,7 +45,7 @@ export function resolveBreakfastRange(
       kind: "all",
       startYmd: ALL_TIME_START,
       endYmd: today,
-      label: "All time",
+      label: "Gesamter Zeitraum",
     };
   }
 

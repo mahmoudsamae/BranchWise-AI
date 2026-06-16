@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isDemoSession } from "@/lib/demo/guard";
 import { HR_DEFAULT_TEMPLATE, HR_DEFAULT_TEMPLATE_ID } from "@/lib/hr/default-template";
 import { requireHrApi } from "@/lib/gm-hr/require-session";
 import { createServiceRoleClient } from "@/lib/supabase";
@@ -8,6 +9,9 @@ import { createServiceRoleClient } from "@/lib/supabase";
 export async function GET() {
   const auth = await requireHrApi();
   if (!auth.ok) return auth.response;
+  if (isDemoSession(auth.session)) {
+    return NextResponse.json({ created: false, template_id: "demo-tpl-hr", title: "HR Weekly" });
+  }
 
   try {
     const supabase = createServiceRoleClient();
