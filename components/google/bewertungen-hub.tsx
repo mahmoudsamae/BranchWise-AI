@@ -17,6 +17,7 @@ import {
 import { BranchGoogleMapsEditor } from "@/components/google/branch-google-maps-editor";
 import { GoogleApiStatusBanner } from "@/components/google/google-api-status-banner";
 import { GoogleReviewsPanel } from "@/components/google/google-reviews-panel";
+import { RatingBumpHint } from "@/components/google/rating-bump-hint";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { GoogleReviewsAnalytics, GoogleReviewsPayload } from "@/lib/google/places-reviews";
@@ -349,9 +350,12 @@ export function BewertungenHub() {
                         </span>
                       ) : null}
                       <p className="text-sm text-[#9ca3af]">
-                        {b.userRatingCount != null ? `${b.userRatingCount} Bewertungen` : "—"}
+                        {b.userRatingCount != null ? `${b.userRatingCount.toLocaleString("de-DE")} Bewertungen` : "—"}
                       </p>
                     </div>
+                    {b.rating != null && b.userRatingCount != null && b.userRatingCount > 0 ? (
+                      <RatingBumpHint rating={b.rating} count={b.userRatingCount} className="mt-2 text-xs text-amber-300/90" />
+                    ) : null}
                     <p className="mt-3 text-xs text-[#a5b4fc]">Details anzeigen →</p>
                   </button>
                 ))}

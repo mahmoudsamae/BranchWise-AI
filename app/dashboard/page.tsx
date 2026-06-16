@@ -1,5 +1,5 @@
-import { OperationsDashboard } from "@/components/dashboard/operations-dashboard";
+import { GmOperationsDashboard } from "@/components/dashboard/gm-operations-dashboard";
 
 export default function DashboardHome() {
-  return <OperationsDashboard mode="gm" />;
+  return <GmOperationsDashboard />;
 }

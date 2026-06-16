@@ -6,6 +6,7 @@ import type { SubmissionHistoryPoint } from "@/lib/branch/submission-history";
 import type { TodaysTaskProgress } from "@/lib/branch/todays-tasks";
 import type { BranchBreakfastPayload } from "@/lib/fruhstuck/load-branch-breakfast";
 import type { DashboardStats } from "@/lib/gm-hr/dashboard-stats";
+import type { OperationsDashboardData } from "@/lib/gm-hr/operations-dashboard";
 import type { HrDashboardPayload } from "@/lib/hr/dashboard-service";
 import { getMockReviewsForBranch } from "@/lib/google/mock-reviews";
 
@@ -20,6 +21,103 @@ const BRANCHES = [
 
 export function demoBranches() {
   return { branches: BRANCHES };
+}
+
+export function demoOperationsDashboard(): OperationsDashboardData {
+  return {
+    live: true,
+    header: {
+      date_label: "Montag, 15. Juni 2026",
+      region_label: "Region Süd",
+      branch_count: BRANCHES.length,
+    },
+    decisions: {
+      missing_reports: {
+        count: 2,
+        all_clear: false,
+        items: [
+          {
+            request_id: "demo-req-1",
+            branch_id: DEMO_BRANCH_IDS.chiemsee,
+            branch_name: "Chiemsee",
+            report_title: "Wochenbericht",
+            period_label: "02.06. – 08.06.2026",
+            due_date: "2026-06-10",
+            days_overdue: 5,
+          },
+          {
+            request_id: "demo-req-2",
+            branch_id: DEMO_BRANCH_IDS.schwarzwald,
+            branch_name: "Schwarzwald",
+            report_title: "Tagesbericht",
+            period_label: "06.06.2026",
+            due_date: "2026-06-12",
+            days_overdue: 3,
+          },
+        ],
+      },
+      support_requests: {
+        count: 1,
+        all_clear: false,
+        items: [
+          { id: "q1", branch_name: "Regensburg", title: "Budget für Fliesen Sanitärgebäude" },
+        ],
+      },
+    },
+    branch_status: [
+      {
+        branch_id: DEMO_BRANCH_IDS.regensburg,
+        branch_name: "Regensburg",
+        camp_score: 67,
+        score_segments: ["green", "green", "yellow", "green"],
+        areas: { rezeption: "green", sanitaer: "green", gruenpflege: "yellow", bestellungen: "green", personal: "yellow", projekte: "green" },
+        last_report_label: "12. Jun",
+        last_report_overdue: false,
+      },
+      {
+        branch_id: DEMO_BRANCH_IDS.bodensee,
+        branch_name: "Bodensee",
+        camp_score: 61,
+        score_segments: ["green", "yellow", "green", "yellow"],
+        areas: { rezeption: "green", sanitaer: "yellow", gruenpflege: "green", bestellungen: "green", personal: "green", projekte: "yellow" },
+        last_report_label: "11. Jun",
+        last_report_overdue: false,
+      },
+      {
+        branch_id: DEMO_BRANCH_IDS.chiemsee,
+        branch_name: "Chiemsee",
+        camp_score: 56,
+        score_segments: ["yellow", "yellow", "green", "red"],
+        areas: { rezeption: "yellow", sanitaer: "green", gruenpflege: "green", bestellungen: "yellow", personal: "red", projekte: "yellow" },
+        last_report_label: "– 5 Tage",
+        last_report_overdue: true,
+      },
+      {
+        branch_id: DEMO_BRANCH_IDS.schwarzwald,
+        branch_name: "Schwarzwald",
+        camp_score: 52,
+        score_segments: ["red", "yellow", "red", "yellow"],
+        areas: { rezeption: "red", sanitaer: "yellow", gruenpflege: "yellow", bestellungen: "red", personal: "yellow", projekte: "red" },
+        last_report_label: "– 3 Tage",
+        last_report_overdue: true,
+      },
+    ],
+    projects: [
+      {
+        id: "demo-proj-1",
+        branch_id: DEMO_BRANCH_IDS.regensburg,
+        branch_name: "Regensburg",
+        title: "Sanitärgebäude-Sanierung",
+        status: "blocked",
+        status_label: "BLOCKIERT",
+        notes: "Wartet auf Budgetfreigabe für Fliesen",
+        progress: 25,
+      },
+    ],
+    request_queue: [
+      { id: "q1", kind: "support", branch_id: DEMO_BRANCH_IDS.regensburg, branch_name: "Regensburg", title: "Budget für Fliesen Sanitärgebäude", source: "branch_issues" },
+    ],
+  };
 }
 
 export function demoDashboardStats(): DashboardStats {

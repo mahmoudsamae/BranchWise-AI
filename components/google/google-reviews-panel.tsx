@@ -14,6 +14,7 @@ import {
 } from "recharts";
 
 import { Button } from "@/components/ui/Button";
+import { RatingBumpHint } from "@/components/google/rating-bump-hint";
 import type { GoogleReviewDto, GoogleReviewsAnalytics, GoogleReviewsPayload } from "@/lib/google/places-reviews";
 
 type SortMode = "newest" | "highest" | "lowest";
@@ -144,6 +145,11 @@ export function GoogleReviewsPanel({ payload, isDemo, onRefresh, compact }: Goog
                   ? `${payload.userRatingCount.toLocaleString("de-DE")} Bewertungen auf Google`
                   : "Keine Gesamtbewertung verfügbar"}
               </p>
+              <RatingBumpHint
+                rating={payload.rating}
+                count={payload.userRatingCount}
+                className="mt-2 text-sm text-amber-300/90"
+              />
             </div>
           </div>
         </div>
