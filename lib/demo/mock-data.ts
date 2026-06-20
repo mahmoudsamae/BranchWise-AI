@@ -1,3 +1,4 @@
+import type { BranchBreakfastDashboardSummary } from "@/lib/branch/breakfast-dashboard";
 import type { BranchReviewsSummary } from "@/lib/branch/branch-reviews-summary";
 import type { BranchIssue } from "@/lib/branch/problems";
 import type { OvertimeSummary } from "@/lib/branch/overtime-summary";
@@ -565,6 +566,7 @@ export type BranchDashboardDemoData = {
   overtime: OvertimeSummary;
   issues: BranchIssue[];
   reviewsNeedingReply: ReviewsNeedingReplyPayload;
+  breakfast: BranchBreakfastDashboardSummary;
 };
 
 export function demoBranchDashboard(): BranchDashboardDemoData {
@@ -646,6 +648,11 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         status: "open",
         costEstimate: 1240,
         notes: "Wartet auf Entscheidung.",
+        stageNotes: {
+          "0": "Schranke blockiert Einfahrt seit 12.06.",
+          "3": "Angebot: 1.240 € inkl. Montage.",
+          "4": "Fortsetzen? Wartet auf Entscheidung.",
+        },
         createdAt: "2026-06-12T08:00:00.000Z",
         updatedAt: "2026-06-15T08:00:00.000Z",
       },
@@ -658,6 +665,10 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         status: "open",
         costEstimate: null,
         notes: "Provider kontaktiert · Rückruf heute erwartet.",
+        stageNotes: {
+          "0": "WLAN in Sektor C seit 15:00 ausgefallen.",
+          "1": "Provider kontaktiert · Rückruf heute erwartet.",
+        },
         createdAt: "2026-06-15T08:00:00.000Z",
         updatedAt: "2026-06-15T08:00:00.000Z",
       },
@@ -670,6 +681,9 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         status: "open",
         costEstimate: null,
         notes: "In Test — 2 Stationen aktiv. Feedback wird gesammelt.",
+        stageNotes: {
+          "2": "In Test — 2 Stationen aktiv, Feedback wird gesammelt.",
+        },
         createdAt: "2026-05-26T08:00:00.000Z",
         updatedAt: "2026-06-14T08:00:00.000Z",
       },
@@ -699,6 +713,15 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
           explained: false,
         },
       ],
+    },
+    breakfast: {
+      linked: true,
+      tomorrowYmd: "2026-06-07",
+      tomorrowLabel: "MO 7 JUN",
+      itemCount: 128,
+      orderCount: 34,
+      highVolume: true,
+      hint: "Hohes Aufkommen — früher anfangen, Aushilfe einplanen.",
     },
   };
 }

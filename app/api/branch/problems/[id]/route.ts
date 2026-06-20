@@ -10,7 +10,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  let body: { currentStage?: number; status?: string; notes?: string | null; costEstimate?: number | null };
+  let body: {
+    currentStage?: number;
+    status?: string;
+    notes?: string | null;
+    costEstimate?: number | null;
+    stageNotes?: Record<string, string>;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -25,6 +31,7 @@ export async function PATCH(request: Request, { params }: Params) {
       status,
       notes: body.notes,
       costEstimate: body.costEstimate,
+      stageNotes: body.stageNotes,
     });
     return NextResponse.json({ issue });
   } catch (e) {

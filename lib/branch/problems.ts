@@ -12,6 +12,7 @@ export type BranchIssue = {
   status: "open" | "done";
   costEstimate: number | null;
   notes: string | null;
+  stageNotes: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 };
@@ -23,6 +24,16 @@ export function defaultStagesFor(kind: "problem" | "project"): string[] {
   return kind === "problem" ? DEFAULT_PROBLEM_STAGES : DEFAULT_PROJECT_STAGES;
 }
 
+function parseStageNotes(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const text = String(v ?? "").trim();
+    if (text) out[k] = text;
+  }
+  return out;
+}
+
 function mapRow(row: {
   id: string;
   kind: string;
@@ -32,6 +43,7 @@ function mapRow(row: {
   status: string;
   cost_estimate: number | null;
   notes: string | null;
+  stage_notes?: unknown;
   created_at: string;
   updated_at: string;
 }): BranchIssue {
@@ -44,16 +56,20 @@ function mapRow(row: {
     status: row.status === "done" ? "done" : "open",
     costEstimate: row.cost_estimate,
     notes: row.notes,
+    stageNotes: parseStageNotes(row.stage_notes),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
+const ISSUE_SELECT =
+  "id, kind, title, stages, current_stage, status, cost_estimate, notes, stage_notes, created_at, updated_at";
+
 export async function listIssues(branchId: string): Promise<BranchIssue[]> {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("branch_issues")
-    .select("id, kind, title, stages, current_stage, status, cost_estimate, notes, created_at, updated_at")
+    .select(ISSUE_SELECT)
     .eq("branch_id", branchId)
     .order("status", { ascending: true })
     .order("updated_at", { ascending: false });
@@ -81,7 +97,7 @@ export async function createIssue(
       notes: input.notes ?? null,
       created_by: userId,
     })
-    .select("id, kind, title, stages, current_stage, status, cost_estimate, notes, created_at, updated_at")
+    .select(ISSUE_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "Could not create issue");
@@ -91,7 +107,13 @@ export async function createIssue(
 export async function updateIssue(
   id: string,
   branchId: string,
-  patch: { currentStage?: number; status?: "open" | "done"; notes?: string | null; costEstimate?: number | null },
+  patch: {
+    currentStage?: number;
+    status?: "open" | "done";
+    notes?: string | null;
+    costEstimate?: number | null;
+    stageNotes?: Record<string, string>;
+  },
 ): Promise<BranchIssue> {
   const supabase = createServiceRoleClient();
   const update: IssueUpdate = { updated_at: new Date().toISOString() };
@@ -99,13 +121,14 @@ export async function updateIssue(
   if (patch.status !== undefined) update.status = patch.status;
   if (patch.notes !== undefined) update.notes = patch.notes;
   if (patch.costEstimate !== undefined) update.cost_estimate = patch.costEstimate;
+  if (patch.stageNotes !== undefined) update.stage_notes = patch.stageNotes;
 
   const { data, error } = await supabase
     .from("branch_issues")
     .update(update)
     .eq("id", id)
     .eq("branch_id", branchId)
-    .select("id, kind, title, stages, current_stage, status, cost_estimate, notes, created_at, updated_at")
+    .select(ISSUE_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "Could not update issue");

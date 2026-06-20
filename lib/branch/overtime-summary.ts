@@ -65,15 +65,15 @@ export function buildOvertimeSummaryFromEntries(
   let lastUpdated: string | null = null;
 
   for (const row of monthRows) {
-    monthHours += Number(row.overtime_hours ?? 0);
     if (row.created_at && (!lastUpdated || row.created_at > lastUpdated)) {
       lastUpdated = row.created_at;
     }
   }
 
   for (const [staffId, metrics] of monthMetrics) {
+    monthHours += metrics.total_overtime;
     if (metrics.total_overtime > 0) staffWithOvertimeMonth++;
-    if (metrics.total_overtime > NEAR_LIMIT_THRESHOLD_HOURS) {
+    if (metrics.total_overtime >= NEAR_LIMIT_THRESHOLD_HOURS) {
       nearLimit.push({
         name: staffNames.get(staffId) ?? "Mitarbeiter",
         hours: metrics.total_overtime,

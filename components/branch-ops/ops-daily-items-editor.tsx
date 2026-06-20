@@ -28,11 +28,16 @@ export function mergeGroupDrafts(
   const byGroup = (text: string, group: OpsTimeGroup) => {
     const newLabels = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const oldInGroup = (existing ?? []).filter((i) => i.time_group === group);
-    return newLabels.map((label, idx) => ({
-      id: oldInGroup[idx]?.id,
-      label,
-      time_group: group,
-    }));
+    const remaining = [...oldInGroup];
+    return newLabels.map((label) => {
+      const matchIdx = remaining.findIndex((i) => i.label === label);
+      const match = matchIdx >= 0 ? remaining.splice(matchIdx, 1)[0] : undefined;
+      return {
+        id: match?.id,
+        label,
+        time_group: group,
+      };
+    });
   };
   return [
     ...byGroup(morning, "morning"),

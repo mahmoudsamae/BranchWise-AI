@@ -448,6 +448,7 @@ export type Database = {
           status: string
           cost_estimate: number | null
           notes: string | null
+          stage_notes: Json
           created_by: string | null
           created_at: string
           updated_at: string
@@ -462,6 +463,7 @@ export type Database = {
           status?: string
           cost_estimate?: number | null
           notes?: string | null
+          stage_notes?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -476,6 +478,7 @@ export type Database = {
           status?: string
           cost_estimate?: number | null
           notes?: string | null
+          stage_notes?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string

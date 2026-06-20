@@ -21,37 +21,38 @@ export async function fetchDailyItemsForDate(
   workDate: string,
   staffMap: Map<string, string>,
 ): Promise<DailyItemWithCompletion[]> {
-  const { data: activeItems, error: itemsErr } = await supabase
+  const { data: tableItems, error: itemsErr } = await supabase
     .from("branch_ops_daily_items")
     .select("id, label, time_hint, time_group, sort_order, is_active")
     .eq("table_id", tableId)
-    .eq("is_active", true)
     .order("sort_order");
 
   if (itemsErr) throw new Error(itemsErr.message);
 
-  const { data: completions, error: compErr } = await supabase
-    .from("branch_ops_daily_completions")
-    .select("daily_item_id, staff_member_id, completed_at")
-    .eq("work_date", workDate);
+  const itemIds = (tableItems ?? []).map((i) => i.id as string);
+  const completionMap = new Map<string, { staff_member_id: string | null; completed_at: string | null }>();
 
-  if (compErr) throw new Error(compErr.message);
+  if (itemIds.length > 0) {
+    const { data: completions, error: compErr } = await supabase
+      .from("branch_ops_daily_completions")
+      .select("daily_item_id, staff_member_id, completed_at")
+      .in("daily_item_id", itemIds)
+      .eq("work_date", workDate);
 
-  const completionMap = new Map((completions ?? []).map((c) => [c.daily_item_id as string, c]));
-  const activeIds = new Set((activeItems ?? []).map((i) => i.id as string));
-  const historicalIds = [...completionMap.keys()].filter((id) => !activeIds.has(id));
+    if (compErr) throw new Error(compErr.message);
 
-  let historicalItems: typeof activeItems = [];
-  if (historicalIds.length > 0) {
-    const { data } = await supabase
-      .from("branch_ops_daily_items")
-      .select("id, label, time_hint, time_group, sort_order, is_active")
-      .in("id", historicalIds)
-      .order("sort_order");
-    historicalItems = data ?? [];
+    for (const c of completions ?? []) {
+      completionMap.set(c.daily_item_id as string, {
+        staff_member_id: (c.staff_member_id as string | null) ?? null,
+        completed_at: (c.completed_at as string | null) ?? null,
+      });
+    }
   }
 
-  const merged = [...(activeItems ?? []), ...historicalItems].sort(
+  const activeItems = (tableItems ?? []).filter((i) => i.is_active);
+  const historicalItems = (tableItems ?? []).filter((i) => !i.is_active && completionMap.has(i.id as string));
+
+  const merged = [...activeItems, ...historicalItems].sort(
     (a, b) => (a.sort_order as number) - (b.sort_order as number),
   );
 
@@ -66,9 +67,9 @@ export async function fetchDailyItemsForDate(
       sort_order: item.sort_order as number,
       is_active: Boolean(item.is_active),
       completed: Boolean(c),
-      staff_member_id: (c?.staff_member_id as string | null) ?? null,
-      staff_name: c?.staff_member_id ? staffMap.get(c.staff_member_id as string) ?? null : null,
-      completed_at: (c?.completed_at as string | null) ?? null,
+      staff_member_id: c?.staff_member_id ?? null,
+      staff_name: c?.staff_member_id ? staffMap.get(c.staff_member_id) ?? null : null,
+      completed_at: c?.completed_at ?? null,
     };
   });
 }

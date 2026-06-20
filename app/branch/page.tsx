@@ -1,11 +1,13 @@
 import Link from "next/link";
 
+import { BranchBreakfastCard } from "@/components/branch/branch-breakfast-card";
 import { BranchGoogleReviewsWidget } from "@/components/branch/branch-google-reviews-widget";
 import { BranchOvertimeCard } from "@/components/branch/branch-overtime-card";
 import { BranchProblemsWidget } from "@/components/branch/branch-problems-widget";
 import { BranchReviewsReplyWidget } from "@/components/branch/branch-reviews-reply-widget";
 import { BranchSubmissionHistoryWidget } from "@/components/branch/branch-submission-history-widget";
 import { BranchTodaysTasksCard } from "@/components/branch/branch-todays-tasks-card";
+import { getBranchBreakfastDashboardSummary, type BranchBreakfastDashboardSummary } from "@/lib/branch/breakfast-dashboard";
 import { fetchBranchReviewsSummary, fetchBranchSubmissionHistory } from "@/lib/branch/fetch-branch-dashboard";
 import { getOvertimeSummary, type OvertimeSummary } from "@/lib/branch/overtime-summary";
 import { listIssues, type BranchIssue } from "@/lib/branch/problems";
@@ -17,6 +19,16 @@ import type { BranchReviewsSummary } from "@/lib/branch/branch-reviews-summary";
 import type { SubmissionHistoryPoint } from "@/lib/branch/submission-history";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { getSessionUserServer } from "@/lib/session";
+
+const EMPTY_BREAKFAST: BranchBreakfastDashboardSummary = {
+  linked: false,
+  tomorrowYmd: "",
+  tomorrowLabel: "",
+  itemCount: 0,
+  orderCount: 0,
+  highVolume: false,
+  hint: null,
+};
 
 const EMPTY_OVERTIME: OvertimeSummary = {
   monthHours: 0,
@@ -50,6 +62,7 @@ export default async function BranchDashboardPage() {
   let overtime: OvertimeSummary = EMPTY_OVERTIME;
   let issues: BranchIssue[] = [];
   let reviewsNeedingReply: ReviewsNeedingReplyPayload = EMPTY_REVIEWS_NEEDING_REPLY;
+  let breakfast: BranchBreakfastDashboardSummary = EMPTY_BREAKFAST;
   let loadError: string | null = null;
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -69,6 +82,7 @@ export default async function BranchDashboardPage() {
     overtime = demo.overtime;
     issues = demo.issues;
     reviewsNeedingReply = demo.reviewsNeedingReply;
+    breakfast = demo.breakfast;
     loadError = demo.loadError;
   } else if (!bid) {
     loadError = "No branch assigned to your account.";
@@ -98,13 +112,14 @@ export default async function BranchDashboardPage() {
         .gte("submitted_at", weekAgoStr);
       submittedWeek = sw ?? 0;
 
-      [submissionHistory, reviewsSummary, todaysTasks, overtime, issues, reviewsNeedingReply] = await Promise.all([
+      [submissionHistory, reviewsSummary, todaysTasks, overtime, issues, reviewsNeedingReply, breakfast] = await Promise.all([
         fetchBranchSubmissionHistory(),
         fetchBranchReviewsSummary(),
         getTodaysTaskProgress(bid),
         getOvertimeSummary(bid),
         listIssues(bid),
         listReviewsNeedingReply(bid),
+        getBranchBreakfastDashboardSummary(bid),
       ]);
     } catch {
       loadError = "Could not load data (database or service key).";
@@ -139,7 +154,7 @@ export default async function BranchDashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-[#1f2937] bg-[#111827] p-6 transition hover:border-red-500/30">
           <p className="text-sm font-medium text-[#9ca3af]">Reports</p>
           <p className="mt-2 text-3xl font-bold text-red-400">
@@ -155,6 +170,7 @@ export default async function BranchDashboardPage() {
 
         <BranchTodaysTasksCard tasks={todaysTasks} />
         <BranchOvertimeCard overtime={overtime} />
+        <BranchBreakfastCard breakfast={breakfast} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
