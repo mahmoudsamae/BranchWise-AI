@@ -17,10 +17,10 @@ import {
 } from "recharts";
 
 import { Button } from "@/components/ui/Button";
+import { StaffProfileStats } from "@/components/staff/staff-profile-stats";
 import { StaffReportList } from "@/components/staff/staff-report-list";
 import { StaffDiscussionAlerts } from "@/components/notifications/staff-discussion-alerts";
-import { formatStaffHours } from "@/lib/staff/format-hours";
-import { currentCalendarWeek, formatPeriodLabel } from "@/lib/staff/period";
+import { formatPeriodLabel, lastBerlinMonth, lastCalendarWeek } from "@/lib/staff/period";
 
 type StaffMember = {
   id: string;
@@ -31,15 +31,6 @@ type StaffMember = {
   employment_type: string | null;
   start_date: string | null;
   is_active: boolean;
-};
-
-type ProfileTotals = {
-  hours: number;
-  overtime: number;
-  month_overtime: number;
-  absences: number;
-  late: number;
-  month_label: string;
 };
 
 type HistoryEntry = {
@@ -67,20 +58,22 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
 
   const [staff, setStaff] = useState<StaffMember | null>(null);
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
-  const [profileTotals, setProfileTotals] = useState<ProfileTotals | null>(null);
   const [discussionUnread, setDiscussionUnread] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    period_start: "",
-    period_end: "",
-    hours_worked: "",
-    overtime_hours: "",
-    absences: "",
-    late_arrivals: "",
-    summary: "",
-    notes: "",
+  const [form, setForm] = useState(() => {
+    const w = lastCalendarWeek();
+    return {
+      period_start: w.period_start,
+      period_end: w.period_end,
+      hours_worked: "",
+      overtime_hours: "",
+      absences: "",
+      late_arrivals: "",
+      summary: "",
+      notes: "",
+    };
   });
 
   const load = useCallback(async () => {
@@ -97,11 +90,9 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
         staff?: StaffMember;
         entries?: HistoryEntry[];
         discussion_unread?: Record<string, number>;
-        totals?: ProfileTotals;
       };
       setStaff(j.staff ?? null);
       setEntries(j.entries ?? []);
-      setProfileTotals(j.totals ?? null);
       setDiscussionUnread(j.discussion_unread ?? {});
     } catch {
       setError("Request failed");
@@ -150,15 +141,18 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
         alert(j.error ?? "Failed to save report");
         return;
       }
-      setForm({
-        period_start: "",
-        period_end: "",
-        hours_worked: "",
-        overtime_hours: "",
-        absences: "",
-        late_arrivals: "",
-        summary: "",
-        notes: "",
+      setForm(() => {
+        const w = lastCalendarWeek();
+        return {
+          period_start: w.period_start,
+          period_end: w.period_end,
+          hours_worked: "",
+          overtime_hours: "",
+          absences: "",
+          late_arrivals: "",
+          summary: "",
+          notes: "",
+        };
       });
       void load();
     } finally {
@@ -202,30 +196,7 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
 
       <StaffDiscussionAlerts profileBasePath="/branch/staff" />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Total hours</p>
-          <p className="mt-1 text-2xl font-bold text-white">{formatStaffHours(profileTotals?.hours ?? 0)}</p>
-          <p className="mt-1 text-xs text-[#6b7280]">All reports</p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Overtime</p>
-          <p className="mt-1 text-2xl font-bold text-amber-400">
-            {formatStaffHours(profileTotals?.month_overtime ?? 0)}h
-          </p>
-          <p className="mt-1 text-xs text-[#6b7280]">
-            {profileTotals?.month_label ?? "This month"} · {formatStaffHours(profileTotals?.overtime ?? 0)}h total
-          </p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Absences</p>
-          <p className="mt-1 text-2xl font-bold text-white">{profileTotals?.absences ?? 0}</p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Late arrivals</p>
-          <p className="mt-1 text-2xl font-bold text-white">{profileTotals?.late ?? 0}</p>
-        </article>
-      </section>
+      <StaffProfileStats entries={entries} />
 
       <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-5">
         <h2 className="text-lg font-semibold text-white">Write employee report</h2>
@@ -238,11 +209,21 @@ export function BranchStaffProfile({ staffId }: { staffId: string }) {
             type="button"
             variant="secondary"
             onClick={() => {
-              const w = currentCalendarWeek();
+              const w = lastCalendarWeek();
               setForm((f) => ({ ...f, period_start: w.period_start, period_end: w.period_end }));
             }}
           >
-            This week (Mon–Sun)
+            Last week (Mon–Sun)
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              const m = lastBerlinMonth();
+              setForm((f) => ({ ...f, period_start: m.period_start, period_end: m.period_end }));
+            }}
+          >
+            Last month
           </Button>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">

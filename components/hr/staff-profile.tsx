@@ -18,6 +18,7 @@ import {
 
 import { Staff360Panel } from "@/components/hr/staff-360-panel";
 import { StaffDiscussionAlerts } from "@/components/notifications/staff-discussion-alerts";
+import { StaffProfileStats } from "@/components/staff/staff-profile-stats";
 import { StaffReportList } from "@/components/staff/staff-report-list";
 import { formatPeriodLabel } from "@/lib/staff/period";
 
@@ -104,18 +105,6 @@ export function StaffProfile({ staffId }: { staffId: string }) {
     [entries],
   );
 
-  const totals = useMemo(() => {
-    return entries.reduce(
-      (acc, e) => ({
-        hours: acc.hours + (e.hours_worked ?? 0),
-        overtime: acc.overtime + (e.overtime_hours ?? 0),
-        absences: acc.absences + (e.absences ?? 0),
-        late: acc.late + (e.late_arrivals ?? 0),
-      }),
-      { hours: 0, overtime: 0, absences: 0, late: 0 },
-    );
-  }, [entries]);
-
   if (loading) {
     return (
       <p className="flex items-center gap-2 text-[#9ca3af]">
@@ -156,24 +145,7 @@ export function StaffProfile({ staffId }: { staffId: string }) {
 
       <Staff360Panel staffId={staffId} />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Total hours</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.hours}</p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Total overtime</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.overtime}</p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Absences</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.absences}</p>
-        </article>
-        <article className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-          <p className="text-xs uppercase text-[#6b7280]">Late arrivals</p>
-          <p className="mt-1 text-2xl font-bold text-white">{totals.late}</p>
-        </article>
-      </section>
+      <StaffProfileStats entries={entries} />
 
       {chartData.length > 0 ? (
         <section className="grid gap-6 lg:grid-cols-2">

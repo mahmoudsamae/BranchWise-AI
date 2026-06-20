@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/database.types";
+import { parseStageChecklists, type StageChecklists } from "@/lib/branch/issue-stage-data";
 import { createServiceRoleClient } from "@/lib/supabase";
 
 type IssueUpdate = Database["public"]["Tables"]["branch_issues"]["Update"];
@@ -13,6 +14,7 @@ export type BranchIssue = {
   costEstimate: number | null;
   notes: string | null;
   stageNotes: Record<string, string>;
+  stageChecklists: StageChecklists;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,6 +46,7 @@ function mapRow(row: {
   cost_estimate: number | null;
   notes: string | null;
   stage_notes?: unknown;
+  stage_checklists?: unknown;
   created_at: string;
   updated_at: string;
 }): BranchIssue {
@@ -57,13 +60,26 @@ function mapRow(row: {
     costEstimate: row.cost_estimate,
     notes: row.notes,
     stageNotes: parseStageNotes(row.stage_notes),
+    stageChecklists: parseStageChecklists(row.stage_checklists),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 const ISSUE_SELECT =
-  "id, kind, title, stages, current_stage, status, cost_estimate, notes, stage_notes, created_at, updated_at";
+  "id, kind, title, stages, current_stage, status, cost_estimate, notes, stage_notes, stage_checklists, created_at, updated_at";
+
+export async function getIssue(branchId: string, id: string): Promise<BranchIssue | null> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("branch_issues")
+    .select(ISSUE_SELECT)
+    .eq("branch_id", branchId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapRow(data) : null;
+}
 
 export async function listIssues(branchId: string): Promise<BranchIssue[]> {
   const supabase = createServiceRoleClient();
@@ -108,20 +124,24 @@ export async function updateIssue(
   id: string,
   branchId: string,
   patch: {
+    title?: string;
     currentStage?: number;
     status?: "open" | "done";
     notes?: string | null;
     costEstimate?: number | null;
     stageNotes?: Record<string, string>;
+    stageChecklists?: StageChecklists;
   },
 ): Promise<BranchIssue> {
   const supabase = createServiceRoleClient();
   const update: IssueUpdate = { updated_at: new Date().toISOString() };
+  if (patch.title !== undefined) update.title = patch.title.trim();
   if (patch.currentStage !== undefined) update.current_stage = patch.currentStage;
   if (patch.status !== undefined) update.status = patch.status;
   if (patch.notes !== undefined) update.notes = patch.notes;
   if (patch.costEstimate !== undefined) update.cost_estimate = patch.costEstimate;
   if (patch.stageNotes !== undefined) update.stage_notes = patch.stageNotes;
+  if (patch.stageChecklists !== undefined) update.stage_checklists = patch.stageChecklists;
 
   const { data, error } = await supabase
     .from("branch_issues")

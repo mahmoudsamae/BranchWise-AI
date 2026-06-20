@@ -84,6 +84,78 @@ export function currentCalendarWeek(): PeriodInput {
   return { period_start: iso(monday), period_end: iso(sunday) };
 }
 
+/** Previous Monday–Sunday (UTC). */
+export function lastCalendarWeek(): PeriodInput {
+  const current = currentCalendarWeek();
+  const monday = new Date(`${current.period_start}T00:00:00.000Z`);
+  monday.setUTCDate(monday.getUTCDate() - 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { period_start: iso(monday), period_end: iso(sunday) };
+}
+
+function berlinTodayParts(): { y: number; m: number } {
+  const iso = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const [y, m] = iso.split("-").map((x) => parseInt(x, 10));
+  return { y: y ?? new Date().getFullYear(), m: m ?? 1 };
+}
+
+/** First–last day of the current month in Europe/Berlin. */
+export function currentBerlinMonth(): PeriodInput {
+  const { y, m } = berlinTodayParts();
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const end = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { period_start: start, period_end: end };
+}
+
+/** Full previous calendar month in Europe/Berlin. */
+export function lastBerlinMonth(): PeriodInput {
+  const { y, m } = berlinTodayParts();
+  const prevM = m === 1 ? 12 : m - 1;
+  const prevY = m === 1 ? y - 1 : y;
+  const start = `${prevY}-${String(prevM).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(prevY, prevM, 0)).getUTCDate();
+  const end = `${prevY}-${String(prevM).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { period_start: start, period_end: end };
+}
+
+export type EntryTotals = {
+  hours: number;
+  overtime: number;
+  absences: number;
+  late: number;
+};
+
+export function sumEntriesInPeriod<
+  T extends {
+    week_start: string;
+    period_end?: string | null;
+    hours_worked: number;
+    overtime_hours: number;
+    absences: number;
+    late_arrivals: number;
+  },
+>(entries: T[], filterFrom: string, filterTo: string): EntryTotals {
+  return entries
+    .filter((e) => entryInPeriod(e.week_start, e.period_end, filterFrom, filterTo))
+    .reduce(
+      (acc, e) => ({
+        hours: acc.hours + Number(e.hours_worked ?? 0),
+        overtime: acc.overtime + Number(e.overtime_hours ?? 0),
+        absences: acc.absences + Number(e.absences ?? 0),
+        late: acc.late + Number(e.late_arrivals ?? 0),
+      }),
+      { hours: 0, overtime: 0, absences: 0, late: 0 },
+    );
+}
+
 export function lastNDaysPeriod(days: number): PeriodInput {
   const end = new Date();
   const start = new Date(end);

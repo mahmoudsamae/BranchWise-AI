@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BranchBreakfastCard } from "@/components/branch/branch-breakfast-card";
 import { BranchGoogleReviewsWidget } from "@/components/branch/branch-google-reviews-widget";
 import { BranchOvertimeCard } from "@/components/branch/branch-overtime-card";
-import { BranchProblemsWidget } from "@/components/branch/branch-problems-widget";
+import { BranchIssuesSummary } from "@/components/branch/issues/branch-issues-summary";
 import { BranchReviewsReplyWidget } from "@/components/branch/branch-reviews-reply-widget";
 import { BranchSubmissionHistoryWidget } from "@/components/branch/branch-submission-history-widget";
 import { BranchTodaysTasksCard } from "@/components/branch/branch-todays-tasks-card";
@@ -175,7 +175,7 @@ export default async function BranchDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <BranchProblemsWidget initialIssues={issues} />
+          <BranchIssuesSummary issues={issues} />
         </div>
         <BranchReviewsReplyWidget payload={reviewsNeedingReply} />
       </div>

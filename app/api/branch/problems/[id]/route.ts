@@ -11,11 +11,13 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const { id } = await params;
   let body: {
+    title?: string;
     currentStage?: number;
     status?: string;
     notes?: string | null;
     costEstimate?: number | null;
     stageNotes?: Record<string, string>;
+    stageChecklists?: Record<string, { id: string; text: string; done: boolean }[]>;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -27,11 +29,13 @@ export async function PATCH(request: Request, { params }: Params) {
 
   try {
     const issue = await updateIssue(id, auth.session.branch_id, {
+      title: body.title,
       currentStage: body.currentStage,
       status,
       notes: body.notes,
       costEstimate: body.costEstimate,
       stageNotes: body.stageNotes,
+      stageChecklists: body.stageChecklists,
     });
     return NextResponse.json({ issue });
   } catch (e) {

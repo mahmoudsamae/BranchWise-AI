@@ -449,6 +449,7 @@ export type Database = {
           cost_estimate: number | null
           notes: string | null
           stage_notes: Json
+          stage_checklists: Json
           created_by: string | null
           created_at: string
           updated_at: string
@@ -464,6 +465,7 @@ export type Database = {
           cost_estimate?: number | null
           notes?: string | null
           stage_notes?: Json
+          stage_checklists?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -479,6 +481,7 @@ export type Database = {
           cost_estimate?: number | null
           notes?: string | null
           stage_notes?: Json
+          stage_checklists?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string

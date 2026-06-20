@@ -54,9 +54,7 @@ export function StaffReportList({
           <article key={e.id} className="px-4 py-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-base font-semibold text-white">
-                  {formatPeriodLabel(e.week_start, e.period_end)}
-                </p>
+                <p className="text-base font-semibold text-white">{formatPeriodLabel(e.week_start, e.period_end)}</p>
                 <p className="mt-0.5 text-xs text-[#6b7280]">{sourceLabel(e)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -71,17 +69,20 @@ export function StaffReportList({
               </div>
             </div>
 
-            {e.summary?.trim() ? (
-              <div className="mt-4 rounded-lg border border-[#1f2937] bg-[#0a0f1e] p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">Performance summary</p>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#e5e7eb]">{e.summary.trim()}</p>
-              </div>
-            ) : null}
-
-            {e.notes?.trim() ? (
-              <div className="mt-3 rounded-lg border border-dashed border-[#374151] bg-[#111827]/60 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">Notes</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[#9ca3af]">{e.notes.trim()}</p>
+            {e.summary?.trim() || e.notes?.trim() ? (
+              <div className="mt-4 space-y-2 rounded-xl border border-[#1f2937] bg-[#0a0f1e]/60 p-4">
+                {e.summary?.trim() ? (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">Performance summary</p>
+                    <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[#e5e7eb]">{e.summary.trim()}</p>
+                  </div>
+                ) : null}
+                {e.notes?.trim() ? (
+                  <div className={e.summary?.trim() ? "border-t border-[#1f2937] pt-3" : ""}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">Notes</p>
+                    <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[#9ca3af]">{e.notes.trim()}</p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

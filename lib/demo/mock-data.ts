@@ -653,6 +653,12 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
           "3": "Angebot: 1.240 € inkl. Montage.",
           "4": "Fortsetzen? Wartet auf Entscheidung.",
         },
+        stageChecklists: {
+          "3": [
+            { id: "c1", text: "Angebot eingeholt", done: true },
+            { id: "c2", text: "GM informiert", done: false },
+          ],
+        },
         createdAt: "2026-06-12T08:00:00.000Z",
         updatedAt: "2026-06-15T08:00:00.000Z",
       },
@@ -669,6 +675,7 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
           "0": "WLAN in Sektor C seit 15:00 ausgefallen.",
           "1": "Provider kontaktiert · Rückruf heute erwartet.",
         },
+        stageChecklists: {},
         createdAt: "2026-06-15T08:00:00.000Z",
         updatedAt: "2026-06-15T08:00:00.000Z",
       },
@@ -683,6 +690,13 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         notes: "In Test — 2 Stationen aktiv. Feedback wird gesammelt.",
         stageNotes: {
           "2": "In Test — 2 Stationen aktiv, Feedback wird gesammelt.",
+        },
+        stageChecklists: {
+          "2": [
+            { id: "t1", text: "Station A getestet", done: true },
+            { id: "t2", text: "Station B getestet", done: true },
+            { id: "t3", text: "Feedback auswerten", done: false },
+          ],
         },
         createdAt: "2026-05-26T08:00:00.000Z",
         updatedAt: "2026-06-14T08:00:00.000Z",
