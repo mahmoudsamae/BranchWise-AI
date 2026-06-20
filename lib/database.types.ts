@@ -446,10 +446,15 @@ export type Database = {
           stages: Json
           current_stage: number
           status: string
+          workflow_status: string
+          priority: string
+          due_date: string | null
+          stage_due_dates: Json
           cost_estimate: number | null
           notes: string | null
           stage_notes: Json
           stage_checklists: Json
+          activities: Json
           created_by: string | null
           created_at: string
           updated_at: string
@@ -462,10 +467,15 @@ export type Database = {
           stages?: Json
           current_stage?: number
           status?: string
+          workflow_status?: string
+          priority?: string
+          due_date?: string | null
+          stage_due_dates?: Json
           cost_estimate?: number | null
           notes?: string | null
           stage_notes?: Json
           stage_checklists?: Json
+          activities?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -478,10 +488,15 @@ export type Database = {
           stages?: Json
           current_stage?: number
           status?: string
+          workflow_status?: string
+          priority?: string
+          due_date?: string | null
+          stage_due_dates?: Json
           cost_estimate?: number | null
           notes?: string | null
           stage_notes?: Json
           stage_checklists?: Json
+          activities?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string

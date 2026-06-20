@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { createIssue, listIssues } from "@/lib/branch/problems";
+import type { IssuePriority, IssueWorkflowStatus } from "@/lib/branch/issue-types";
+import type { StageChecklists } from "@/lib/branch/issue-stage-data";
 import { requireBranchManagerApi } from "@/lib/branch/require-session";
 
 export async function GET() {
@@ -20,7 +22,17 @@ export async function POST(request: Request) {
   const auth = await requireBranchManagerApi();
   if (!auth.ok) return auth.response;
 
-  let body: { kind?: string; title?: string; stages?: string[]; costEstimate?: number | null; notes?: string | null };
+  let body: {
+    kind?: string;
+    title?: string;
+    stages?: string[];
+    stageChecklists?: StageChecklists;
+    costEstimate?: number | null;
+    notes?: string | null;
+    priority?: IssuePriority;
+    dueDate?: string | null;
+    workflowStatus?: IssueWorkflowStatus;
+  };
   try {
     body = await request.json();
   } catch {
@@ -38,8 +50,12 @@ export async function POST(request: Request) {
       kind,
       title,
       stages: body.stages,
+      stageChecklists: body.stageChecklists,
       costEstimate: body.costEstimate ?? null,
       notes: body.notes ?? null,
+      priority: body.priority,
+      dueDate: body.dueDate ?? null,
+      workflowStatus: body.workflowStatus,
     });
     return NextResponse.json({ issue }, { status: 201 });
   } catch (e) {
