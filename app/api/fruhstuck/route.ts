@@ -17,7 +17,6 @@ function todayIso() {
 function payloadFromStoredRow(row: {
   branch_id: string;
   orders_count: number;
-  revenue: number;
   top_item: string | null;
   items: unknown;
   raw_data: unknown;
@@ -34,7 +33,7 @@ function payloadFromStoredRow(row: {
     branch_name: branch?.name ?? "Unknown",
     external_id: branch?.external_id ?? "",
     orders_count: Number(row.orders_count ?? 0),
-    revenue: Number(row.revenue ?? 0),
+    revenue: Number(raw.summary?.revenue ?? 0),
     top_product: row.top_item,
     trend_pct: raw.comparisons?.ordersLast7VsPrev7Pct ?? null,
     items,
@@ -127,13 +126,13 @@ export async function GET(request: Request) {
     let query = supabase
       .from("fruhstuck_data")
       .select(
-        "id, branch_id, date, orders_count, revenue, top_item, items, raw_data, synced_at, branches(name, external_id)",
+        "id, branch_id, date, orders_count, top_item, items, raw_data, synced_at, branches(name, external_id)",
       )
       .eq("date", date);
 
     if (branchId && branchId !== "all") query = query.eq("branch_id", branchId);
 
-    const { data, error } = await query.order("revenue", { ascending: false });
+    const { data, error } = await query.order("orders_count", { ascending: false });
     if (error) {
       if (error.code === "42P01") {
         return NextResponse.json({ branches: [], warning: "Run migration 20260525000000_fruhstuck_integration" });

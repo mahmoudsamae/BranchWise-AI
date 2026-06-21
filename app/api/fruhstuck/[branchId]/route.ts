@@ -24,7 +24,7 @@ export async function GET(request: Request, ctx: RouteCtx) {
       supabase.from("branches").select("id, name, external_id").eq("id", branchId).maybeSingle(),
       supabase
         .from("fruhstuck_data")
-        .select("orders_count, revenue, top_item, items, raw_data, synced_at")
+        .select("orders_count, top_item, items, raw_data, synced_at")
         .eq("branch_id", branchId)
         .eq("date", date)
         .maybeSingle(),
@@ -42,7 +42,6 @@ export async function GET(request: Request, ctx: RouteCtx) {
       external_id: branch?.external_id ?? null,
       date,
       orders_count: row.orders_count,
-      revenue: Number(row.revenue),
       top_item: row.top_item,
       synced_at: row.synced_at,
       items,

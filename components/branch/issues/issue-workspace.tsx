@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import { CheckCircle2, Eye, RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 import { IssueCollaboratorsPanel } from "@/components/branch/issues/issue-collaborators-panel";
@@ -40,15 +40,17 @@ const TABS: { id: WorkspaceTab; label: string }[] = [
 export function IssueWorkspace({
   issue,
   staff,
+  readOnlyOversight = false,
   onUpdated,
   onCompleted,
 }: {
   issue: BranchIssue;
   staff: StaffOption[];
+  readOnlyOversight?: boolean;
   onUpdated: (issue: BranchIssue) => void;
   onCompleted: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<WorkspaceTab>("list");
+  const [tab, setTab] = useState<WorkspaceTab>(readOnlyOversight ? "overview" : "list");
   const [closing, setClosing] = useState(false);
   const progress = issueProgressPercent(issue);
   const closed = isIssueClosed(issue.status, issue.workflowStatus);
@@ -121,6 +123,11 @@ export function IssueWorkspace({
                   Verantwortlich: {issue.ownerUserName}
                 </span>
               ) : null}
+              {readOnlyOversight ? (
+                <span className="rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-light)]">
+                  {issue.ownerBranchName}
+                </span>
+              ) : null}
             </div>
             <h2 className="mt-2 text-xl font-semibold text-white">{issue.title}</h2>
             <p className="mt-1 text-sm text-[#9ca3af]">
@@ -129,7 +136,12 @@ export function IssueWorkspace({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {issue.canManage ? (
+            {readOnlyOversight ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1.5 text-xs text-[var(--accent-light)]">
+                <Eye className="size-3.5" aria-hidden />
+                Nur Ansicht — Überwachung
+              </span>
+            ) : issue.canManage ? (
               <>
             {!closed ? (
               <select
@@ -233,8 +245,19 @@ export function IssueWorkspace({
         {tab === "overview" ? (
           <div className="space-y-6 p-5">
             <IssueStageTracker stages={issue.stages} currentStage={issue.currentStage} />
-            {issue.kind === "project" ? (
+            {issue.kind === "project" && !readOnlyOversight ? (
               <IssueCollaboratorsPanel issue={issue} onUpdated={onUpdated} />
+            ) : issue.kind === "project" && issue.collaborators.length > 0 ? (
+              <div className="rounded-xl border border-[#1f2937] bg-[#0a0f1e]/50 p-4">
+                <p className="text-xs uppercase text-[#6b7280]">Mitwirkende</p>
+                <ul className="mt-2 space-y-1 text-sm text-[#e5e7eb]">
+                  {issue.collaborators.map((c) => (
+                    <li key={c.userId}>
+                      {c.userName} · {c.branchName}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-3">
               {issue.stages.map((stage, i) => {
@@ -263,19 +286,25 @@ export function IssueWorkspace({
         ) : null}
 
         {tab === "list" ? (
-          <IssueListView issue={issue} staff={staff} onUpdated={onUpdated} readOnly={closed || !issue.canEditTasks} />
+          <IssueListView
+            issue={issue}
+            staff={staff}
+            onUpdated={onUpdated}
+            readOnly={readOnlyOversight || closed || !issue.canEditTasks}
+          />
         ) : null}
 
         {tab === "board" ? (
           <div className="p-5">
-            {issue.canEditTasks && !closed ? (
-            <IssueKanbanBoard
-              issue={issue}
-              onChecklistsChange={async (next) => {
-                const updated = await patchIssue(issue.id, { stageChecklists: next, activityAction: "Board aktualisiert" });
-                onUpdated(updated);
-              }}
-            />
+            {readOnlyOversight || (issue.canEditTasks && !closed) ? (
+              <IssueKanbanBoard
+                issue={issue}
+                readOnly={readOnlyOversight || !issue.canEditTasks || closed}
+                onChecklistsChange={async (next) => {
+                  const updated = await patchIssue(issue.id, { stageChecklists: next, activityAction: "Board aktualisiert" });
+                  onUpdated(updated);
+                }}
+              />
             ) : (
               <p className="text-sm text-[#6b7280]">Keine Berechtigung zum Bearbeiten des Boards.</p>
             )}

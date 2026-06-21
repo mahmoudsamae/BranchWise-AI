@@ -7,6 +7,7 @@ import { OpsColumnField } from "@/components/branch-ops/ops-column-field";
 import { Button } from "@/components/ui/Button";
 import type { OpsColumn } from "@/lib/branch-ops/columns";
 import { isOpsAddFormColumn, isOpsInlineEditableColumn } from "@/lib/branch-ops/columns";
+import { filterOpenLogRows, findReturnColumn } from "@/lib/branch-ops/log-rows";
 
 type StaffOption = { id: string; full_name: string };
 type LogRow = { id: string; data: Record<string, unknown>; staff_name: string | null; created_at: string };
@@ -37,10 +38,12 @@ export function OpsLogTable({
   const staffMap = new Map(staff.map((s) => [s.id, s.full_name]));
 
   const addColumns = columns.filter(isOpsAddFormColumn);
+  const returnCol = findReturnColumn(columns);
+  const visibleRows = filterOpenLogRows(rows, columns);
 
   function displayValue(col: OpsColumn, raw: unknown) {
     if (col.type === "staff" && typeof raw === "string") return staffMap.get(raw) ?? raw;
-    if (col.type === "boolean") return raw ? "Yes" : "No";
+    if (col.type === "boolean") return raw ? "Ja" : "Nein";
     return raw === undefined || raw === null || raw === "" ? "—" : String(raw);
   }
 
@@ -100,7 +103,7 @@ export function OpsLogTable({
             className="size-4 rounded border-[#374151]"
           />
           <span className={checked ? "text-emerald-300" : "text-[#9ca3af]"}>
-            {checked ? "Returned" : "Not yet"}
+            {checked ? "Zurückgegeben" : "Noch offen"}
           </span>
           {busy ? <Loader2 className="size-3 animate-spin text-[#6b7280]" /> : null}
         </label>
@@ -117,7 +120,7 @@ export function OpsLogTable({
             onChange={(e) => void patchCell(row.id, col.id, e.target.value)}
             className="w-full rounded border border-[#374151] bg-[#0a0f1e] px-2 py-1 text-xs text-white"
           >
-            <option value="">Select staff…</option>
+            <option value="">Mitarbeiter…</option>
             {staff.map((s) => (
               <option key={s.id} value={s.id}>{s.full_name}</option>
             ))}
@@ -175,8 +178,10 @@ export function OpsLogTable({
     <div className="space-y-6">
       {!readOnly ? (
       <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-white">Add entry</h3>
-        <p className="text-xs text-[#6b7280]">Enter hand-out details now. Mark return and receiving staff in the table below when the cable comes back.</p>
+        <h3 className="text-sm font-semibold text-white">Neuer Eintrag</h3>
+        <p className="text-xs text-[#6b7280]">
+          Ausleihe erfassen. Nach Rückgabe verschwindet der Eintrag aus der Liste (Archiv nach 24&nbsp;Std.).
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {addColumns.map((col) => (
             <OpsColumnField
@@ -191,11 +196,14 @@ export function OpsLogTable({
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <Button type="button" onClick={() => void addRow()} disabled={saving} className="w-full sm:w-auto">
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          Add row
+          Eintrag hinzufügen
         </Button>
       </div>
       ) : (
-        <p className="text-xs text-[#6b7280]">{rows.length} entries saved for this day</p>
+        <p className="text-xs text-[#6b7280]">
+          {visibleRows.length} offene Einträge
+          {returnCol ? " (zurückgegebene ausgeblendet)" : ""}
+        </p>
       )}
 
       <div className="overflow-x-auto rounded-xl border border-[#1f2937]">
@@ -205,16 +213,18 @@ export function OpsLogTable({
               {columns.map((col) => (
                 <th key={col.id} className="px-3 py-2 font-medium whitespace-nowrap">{col.label}</th>
               ))}
-              <th className="px-3 py-2 font-medium">Time</th>
+              <th className="px-3 py-2 font-medium">Zeit</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-3 py-6 text-center text-[#6b7280]">No entries for this day</td>
+                <td colSpan={columns.length + 1} className="px-3 py-6 text-center text-[#6b7280]">
+                  Keine offenen Einträge
+                </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              visibleRows.map((row) => (
                 <tr key={row.id} className="border-t border-[#1f2937] text-[#e5e7eb]">
                   {columns.map((col) => (
                     <td key={col.id} className="px-3 py-2 align-middle">

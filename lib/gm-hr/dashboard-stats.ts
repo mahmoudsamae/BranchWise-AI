@@ -7,7 +7,6 @@ export type DashboardStats = {
   overdue_reports: number;
   pending_review: number;
   submitted_this_week: number;
-  revenue_week: number;
   avg_occupancy: number | null;
   negative_feedback_week: number;
   unread_messages: number;
@@ -31,7 +30,6 @@ export type DashboardStats = {
     last_report_at: string | null;
     status: string | null;
     occupancy_rate: number | null;
-    revenue: number | null;
     health: "green" | "yellow" | "red";
     health_score: number;
     health_grade: string;
@@ -91,18 +89,16 @@ export async function fetchDashboardStats(
 
   let kpiQ = supabase
     .from("kpis")
-    .select("revenue, occupancy_rate, negative_feedback, branch_id, created_at")
+    .select("occupancy_rate, negative_feedback, branch_id, created_at")
     .gte("created_at", weekAgo);
   const { data: kpisWeek } = await kpiQ;
 
-  let revenue_week = 0;
   let occSum = 0;
   let occCount = 0;
   let negative_feedback_week = 0;
   const occByBranch = new Map<string, number>();
 
   for (const k of kpisWeek ?? []) {
-    revenue_week += Number(k.revenue ?? 0);
     negative_feedback_week += Number(k.negative_feedback ?? 0);
     if (k.occupancy_rate != null) {
       occSum += Number(k.occupancy_rate);
@@ -197,7 +193,7 @@ export async function fetchDashboardStats(
 
     const { data: lastKpi } = await supabase
       .from("kpis")
-      .select("revenue, occupancy_rate, negative_feedback")
+      .select("occupancy_rate, negative_feedback")
       .eq("branch_id", b.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -212,7 +208,6 @@ export async function fetchDashboardStats(
       last_report_at: lastRep?.submitted_at ?? null,
       status: lastRep?.status ?? null,
       occupancy_rate: occ,
-      revenue: lastKpi?.revenue != null ? Number(lastKpi.revenue) : null,
       health: healthResult?.color ?? "yellow",
       health_score: healthResult?.score ?? 0,
       health_grade: healthResult?.grade ?? "F",
@@ -226,7 +221,6 @@ export async function fetchDashboardStats(
     overdue_reports,
     pending_review: pendingReview ?? 0,
     submitted_this_week: submittedWeek ?? 0,
-    revenue_week,
     avg_occupancy,
     negative_feedback_week,
     unread_messages,
@@ -243,7 +237,6 @@ function emptyStats(): DashboardStats {
     overdue_reports: 0,
     pending_review: 0,
     submitted_this_week: 0,
-    revenue_week: 0,
     avg_occupancy: null,
     negative_feedback_week: 0,
     unread_messages: 0,

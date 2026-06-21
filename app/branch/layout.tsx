@@ -32,7 +32,7 @@ export default async function BranchLayout({ children }: { children: React.React
   const { displayName, branchName } = await resolveWorkspaceProfile(session);
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-[#f9fafb]">
+    <div className="bw-shell">
       {isDemoSession(session) ? <DemoBanner /> : null}
       <BranchSidebar branchName={branchName ?? "Your branch"} displayName={displayName} />
       <div className="min-h-screen pt-14 lg:pl-[280px] lg:pt-0">

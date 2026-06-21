@@ -428,12 +428,11 @@ export async function fetchOperationsDashboard(supabase: SupabaseClient): Promis
     const breakdown = health?.breakdown;
     const score_segments: AreaStatus[] = breakdown
       ? [
-          segmentColor(breakdown.feedback, 25),
-          segmentColor(breakdown.submission_rate, 25),
-          segmentColor(breakdown.occupancy, 25),
-          segmentColor(breakdown.revenue_trend, 25),
+          segmentColor(breakdown.feedback, 30),
+          segmentColor(breakdown.submission_rate, 35),
+          segmentColor(breakdown.occupancy, 35),
         ]
-      : [GRAY, GRAY, GRAY, GRAY];
+      : [GRAY, GRAY, GRAY];
 
     const daysOverdue = overdue
       ? Math.max(1, Math.floor((Date.parse(today) - Date.parse(String(overdue.due_date))) / 86400000))

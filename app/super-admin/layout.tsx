@@ -31,7 +31,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   const { displayName, email } = await resolveWorkspaceProfile(session);
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-[#f9fafb]">
+    <div className="bw-shell">
       {isDemoSession(session) ? <DemoBanner /> : null}
       <SuperAdminSidebar displayName={displayName} email={email} />
       <div className="min-h-screen pt-14 lg:pl-[280px] lg:pt-0">

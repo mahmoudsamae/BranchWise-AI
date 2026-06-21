@@ -94,7 +94,7 @@ export async function fetchExportBundle(
   if (!hr_only) {
     let fQ = supabase
       .from("fruhstuck_data")
-      .select("date, orders_count, revenue, top_item, branches(name)")
+      .select("date, orders_count, top_item, branches(name)")
       .gte("date", start_date)
       .lte("date", end_date);
     if (branch_ids.length > 0) fQ = fQ.in("branch_id", branch_ids);
@@ -106,7 +106,6 @@ export async function fetchExportBundle(
         branch_name: bname ?? "Branch",
         date: String(row.date),
         orders_count: Number(row.orders_count),
-        revenue: Number(row.revenue),
         top_item: row.top_item as string | null,
       };
     });
@@ -187,5 +186,5 @@ export function formatDateRangeLabel(start: string, end: string) {
 }
 
 export function branchInsightLine(branch: BranchKpiRow): string {
-  return `${branch.branch_name}: €${branch.total_revenue} revenue, ${branch.avg_occupancy}% occupancy, ${branch.total_negative_feedback} negative feedback, ${branch.reports_submitted} reports.`;
+  return `${branch.branch_name}: ${branch.avg_occupancy}% occupancy, ${branch.total_negative_feedback} negative feedback, ${branch.reports_submitted} reports.`;
 }

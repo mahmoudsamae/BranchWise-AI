@@ -25,6 +25,24 @@ export function parseOpsColumns(raw: unknown) {
   return opsColumnsJsonSchema.safeParse(raw);
 }
 
+/** Trim select options before save. */
+export function sanitizeOpsColumns(columns: OpsColumn[]): OpsColumn[] {
+  return columns.map((col) => {
+    if (col.type !== "select") return col;
+    const options = (col.options ?? []).map((o) => o.trim()).filter(Boolean);
+    return { ...col, options };
+  });
+}
+
+export function validateOpsColumnsForSave(columns: OpsColumn[]): string | null {
+  for (const col of columns) {
+    if (col.type === "select" && (!col.options || col.options.length === 0)) {
+      return `„${col.label}" braucht mindestens eine Auswahloption.`;
+    }
+  }
+  return null;
+}
+
 /** Fields filled when creating a row (e.g. spot, guest, deposit — not return/completion). */
 export function isOpsAddFormColumn(col: OpsColumn) {
   if (col.type === "boolean") return false;

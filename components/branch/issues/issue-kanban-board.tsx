@@ -47,8 +47,16 @@ function DraggableTask({ task }: { task: ReturnType<typeof flattenIssueTasks>[nu
   );
 }
 
-function Column({ status, tasks }: { status: TaskStatus; tasks: ReturnType<typeof flattenIssueTasks> }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
+function Column({
+  status,
+  tasks,
+  readOnly,
+}: {
+  status: TaskStatus;
+  tasks: ReturnType<typeof flattenIssueTasks>;
+  readOnly?: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: status, disabled: readOnly });
   return (
     <div
       ref={setNodeRef}
@@ -62,9 +70,13 @@ function Column({ status, tasks }: { status: TaskStatus; tasks: ReturnType<typeo
         <span className="text-[10px] text-[#6b7280]">{tasks.length}</span>
       </div>
       <div className="space-y-2">
-        {tasks.map((task) => (
-          <DraggableTask key={`${task.stageIndex}:${task.itemId}`} task={task} />
-        ))}
+        {tasks.map((task) =>
+          readOnly ? (
+            <TaskCard key={`${task.stageIndex}:${task.itemId}`} task={task} />
+          ) : (
+            <DraggableTask key={`${task.stageIndex}:${task.itemId}`} task={task} />
+          ),
+        )}
       </div>
     </div>
   );
@@ -73,9 +85,11 @@ function Column({ status, tasks }: { status: TaskStatus; tasks: ReturnType<typeo
 export function IssueKanbanBoard({
   issue,
   onChecklistsChange,
+  readOnly = false,
 }: {
   issue: BranchIssue;
-  onChecklistsChange: (next: StageChecklists) => Promise<void>;
+  onChecklistsChange?: (next: StageChecklists) => Promise<void>;
+  readOnly?: boolean;
 }) {
   const tasks = useMemo(() => flattenIssueTasks(issue), [issue]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -95,6 +109,7 @@ export function IssueKanbanBoard({
   const activeTask = tasks.find((t) => `${t.stageIndex}:${t.itemId}` === activeId) ?? null;
 
   async function moveTask(stageIndex: number, itemId: string, status: TaskStatus) {
+    if (readOnly || !onChecklistsChange) return;
     const key = String(stageIndex);
     const list = [...(issue.stageChecklists[key] ?? [])];
     const idx = list.findIndex((i) => i.id === itemId);
@@ -123,6 +138,16 @@ export function IssueKanbanBoard({
       <p className="rounded-xl border border-dashed border-[#374151] p-6 text-center text-sm text-[#6b7280]">
         Noch keine Aufgaben — füge sie in den Phasen hinzu.
       </p>
+    );
+  }
+
+  if (readOnly) {
+    return (
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {TASK_COLUMNS.map((status) => (
+          <Column key={status} status={status} tasks={grouped[status]} readOnly />
+        ))}
+      </div>
     );
   }
 

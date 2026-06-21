@@ -60,7 +60,7 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
   const [prevSummary, setPrevSummary] = useState<KpiSummary | null>(null);
   const [byBranch, setByBranch] = useState<BranchKpiRow[]>([]);
   const [trends, setTrends] = useState<{
-    trends: { week: string; branch_id: string; branch_name: string; revenue: number; occupancy_rate: number }[];
+    trends: { week: string; branch_id: string; branch_name: string; occupancy_rate: number }[];
     feedback_trend: { week: string; positive: number; negative: number }[];
     issues_trend: { week: string; repeated_issues: number; support_needed: number; unpaid_departures: number }[];
   } | null>(null);
@@ -74,7 +74,6 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
   const [compareData, setCompareData] = useState<
     {
       branch_name: string;
-      total_revenue: number;
       avg_occupancy: number;
       total_negative_feedback: number;
       reports_submitted: number;
@@ -168,17 +167,8 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
   const hasData = useMemo(
     () =>
       (summary?.reports_submitted ?? 0) > 0 ||
-      byBranch.some((b) => (b.revenue ?? b.total_revenue) > 0 || (b.occupancy_rate ?? b.avg_occupancy) > 0),
+      byBranch.some((b) => (b.occupancy_rate ?? b.avg_occupancy) > 0),
     [summary, byBranch],
-  );
-
-  const revenueBars = useMemo(
-    () =>
-      byBranch.map((b) => ({
-        branch_name: b.branch_name,
-        revenue: b.revenue ?? b.total_revenue,
-      })),
-    [byBranch],
   );
 
   const occupancyBars = useMemo(
@@ -194,19 +184,16 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
     const selected = byBranch.filter((x) => radarIds.includes(x.branch_id)).slice(0, 4);
     if (selected.length === 0) return [];
 
-    const maxRev = Math.max(...selected.map((b) => b.revenue ?? b.total_revenue), 1);
     const maxPos = Math.max(...selected.map((b) => b.positive_feedback), 1);
     const maxIssues = Math.max(...selected.map((b) => b.repeated_issues), 1);
     const maxSupport = Math.max(...selected.map((b) => b.support_needed), 1);
 
-    const axes = ["Revenue", "Occupancy", "Positive", "Issues", "Support"] as const;
+    const axes = ["Occupancy", "Positive", "Issues", "Support"] as const;
     return axes.map((metric) => {
       const row: Record<string, string | number> = { metric };
       for (const b of selected) {
-        const rev = b.revenue ?? b.total_revenue;
         const occ = b.occupancy_rate ?? b.avg_occupancy;
-        if (metric === "Revenue") row[b.branch_name] = Math.round((rev / maxRev) * 100);
-        else if (metric === "Occupancy") row[b.branch_name] = Math.min(100, Math.round(occ));
+        if (metric === "Occupancy") row[b.branch_name] = Math.min(100, Math.round(occ));
         else if (metric === "Positive") row[b.branch_name] = Math.round((b.positive_feedback / maxPos) * 100);
         else if (metric === "Issues")
           row[b.branch_name] = Math.max(0, 100 - Math.round((b.repeated_issues / maxIssues) * 100));
@@ -216,7 +203,6 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
     });
   }, [byBranch, radarIds]);
 
-  const revTrend = trendPct(summary?.total_revenue ?? 0, prevSummary?.total_revenue ?? 0);
   const negTrend = trendPct(summary?.total_negative_feedback ?? 0, prevSummary?.total_negative_feedback ?? 0);
 
   return (
@@ -288,7 +274,6 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
       ) : summary ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard label="Total revenue" value={`€${summary.total_revenue.toLocaleString()}`} tone="purple" sub={revTrend?.text} />
             <KpiCard label="Avg occupancy" value={`${summary.avg_occupancy}%`} tone={occTone(summary.avg_occupancy)} />
             <KpiCard label="Negative feedback" value={summary.total_negative_feedback} tone="red" sub={negTrend?.text} />
             <KpiCard label="Unpaid departures" value={summary.unpaid_departures} tone="orange" />
@@ -303,24 +288,6 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
       ) : (
         <p className="text-[#9ca3af]">Could not load KPI summary.</p>
       )}
-
-      <ChartCard title="Revenue by branch">
-        {loading ? (
-          <Skeleton className="h-[300px] w-full" />
-        ) : !hasData || revenueBars.length === 0 ? (
-          <ChartEmpty />
-        ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueBars}>
-              <CartesianGrid stroke="#1f2937" />
-              <XAxis dataKey="branch_name" stroke="#9ca3af" fontSize={11} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip contentStyle={{ background: "#111827", border: "1px solid #1f2937" }} formatter={(v) => [`€${v}`, "Revenue"]} />
-              <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </ChartCard>
 
       <ChartCard title="Branch occupancy %">
         {loading ? (
@@ -490,7 +457,7 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {(["total_revenue", "avg_occupancy", "total_negative_feedback", "reports_submitted"] as const).map((metric) => {
+                    {(["avg_occupancy", "total_negative_feedback", "reports_submitted"] as const).map((metric) => {
                       const vals = compareData.map((b) => Number(b[metric as keyof typeof b] ?? 0));
                       const best = Math.max(...vals);
                       const worst = Math.min(...vals);
@@ -502,7 +469,7 @@ export function AnalyticsDashboard({ mode }: { mode: "gm" | "hr" }) {
                             const cls = v === best && best !== worst ? "text-emerald-400" : v === worst && best !== worst ? "text-red-400" : "";
                             return (
                               <td key={b.branch_name} className={`py-2 pr-4 ${cls}`}>
-                                {metric === "total_revenue" ? `€${v}` : v}
+                                {v}
                               </td>
                             );
                           })}

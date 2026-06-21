@@ -88,7 +88,6 @@ export function BranchOperationsBar({ ops }: { ops: BranchOperationsSnapshot }) 
           value={String(ops.tomorrow.pending)}
           sub="Noch nicht ausgegeben"
         />
-        <KpiCard label="Morgen Umsatz" value={formatEuro(ops.tomorrow.revenue)} />
         <KpiCard
           label="Heute noch offen"
           value={String(ops.today.pending)}
@@ -97,12 +96,12 @@ export function BranchOperationsBar({ ops }: { ops: BranchOperationsSnapshot }) 
         <KpiCard
           label="Boden heute"
           value={String(ops.today.floor_orders)}
-          sub={`${formatEuro(ops.today.floor_revenue)} Direktverkauf`}
+          sub="Direktverkauf"
         />
         <KpiCard
           label="Heute gesamt"
           value={String(ops.today.orders)}
-          sub={formatEuro(ops.today.revenue)}
+          sub="Bestellungen"
         />
       </div>
     </section>
@@ -114,22 +113,19 @@ export function BranchKpiBar({
   comparison,
 }: {
   insights: PortfolioInsights;
-  comparison: { orders_pct: number | null; revenue_pct: number | null };
+  comparison: { orders_pct: number | null };
 }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-semibold text-white">Übersicht</h2>
+        <h2 className="bw-section-title">Übersicht</h2>
         <TrendBadge pct={comparison.orders_pct} label="Bestellungen" />
-        <TrendBadge pct={comparison.revenue_pct} label="Umsatz" />
-        <span className="text-xs text-[#6b7280]">
-          {insights.totalOrders.toLocaleString("de-DE")} Bestellungen im Zeitraum (vollständig geladen)
+        <span className="text-xs text-[var(--text-muted)]">
+          {insights.totalOrders.toLocaleString("de-DE")} Bestellungen im Zeitraum
         </span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Bestellungen" value={String(insights.totalOrders)} />
-        <KpiCard label="Umsatz" value={formatEuro(insights.totalRevenue)} accent />
-        <KpiCard label="Ø Bestellwert" value={formatEuro(insights.averageOrderValue)} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+        <KpiCard label="Bestellungen" value={String(insights.totalOrders)} accent />
         <KpiCard label="Artikel verkauft" value={String(insights.totalItemsSold)} />
       </div>
     </section>
@@ -154,11 +150,9 @@ export function BranchAfterHoursSection({ insights }: { insights: PortfolioInsig
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Bestellungen" value={String(ah.orders)} />
-        <KpiCard label="Umsatz" value={formatEuro(ah.revenue)} accent />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <KpiCard label="Bestellungen" value={String(ah.orders)} accent />
         <KpiCard label="Anteil Gesamt" value={`${ah.pctOfOrders}%`} />
-        <KpiCard label="Ø Bestellwert" value={formatEuro(ah.averageOrderValue)} />
       </div>
 
       <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
@@ -190,27 +184,27 @@ export function BranchAfterHoursSection({ insights }: { insights: PortfolioInsig
   );
 }
 
-export function BranchRevenueTrend({ raw }: { raw: BreakfastAnalyticsData }) {
-  const data = raw.revenue.revenuePerDay;
+export function BranchOrdersTrend({ raw }: { raw: BreakfastAnalyticsData }) {
+  const data = raw.timeAnalytics.ordersByDay ?? [];
 
   return (
-    <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-      <h2 className="mb-4 text-lg font-semibold text-white">Umsatzverlauf</h2>
+    <section className="bw-card p-4">
+      <h2 className="mb-4 text-lg font-semibold text-white">Bestellungen im Verlauf</h2>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              tick={{ fill: "var(--text-secondary)", fontSize: 10 }}
               tickFormatter={(v) => String(v).slice(5)}
             />
-            <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} />
+            <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 11 }} allowDecimals={false} />
             <Tooltip
-              contentStyle={{ background: "#111827", border: "1px solid #1f2937", borderRadius: 8 }}
-              formatter={(v) => [formatEuro(Number(v)), "Umsatz"]}
+              contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
+              formatter={(v) => [v, "Bestellungen"]}
             />
-            <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="count" stroke="var(--accent)" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -251,7 +245,6 @@ export function BranchProductsSection({ raw }: { raw: BreakfastAnalyticsData }) 
               <tr className="border-b border-[#1f2937]">
                 <th className="px-4 py-3">Produkt</th>
                 <th className="px-4 py-3">Stück</th>
-                <th className="px-4 py-3">Umsatz</th>
                 <th className="px-4 py-3">Anteil</th>
               </tr>
             </thead>
@@ -260,7 +253,6 @@ export function BranchProductsSection({ raw }: { raw: BreakfastAnalyticsData }) 
                 <tr key={p.name} className="border-b border-[#1f2937]/60 text-[#e5e7eb]">
                   <td className="px-4 py-3 font-medium text-white">{p.name}</td>
                   <td className="px-4 py-3">{p.count}</td>
-                  <td className="px-4 py-3">{formatEuro(p.revenue)}</td>
                   <td className="px-4 py-3">{p.shareOfSalesPct}%</td>
                 </tr>
               ))}
@@ -280,14 +272,10 @@ export function BranchPeakTimeSection({ insights }: { insights: PortfolioInsight
     <section className="space-y-4">
       <h2 className="text-lg font-semibold text-white">Stoßzeiten & Wochentage</h2>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard
           label="Stoßzeit Bestellungen"
           value={insights.peakOrderHour != null ? formatHour(insights.peakOrderHour) : "—"}
-        />
-        <KpiCard
-          label="Stoßzeit Umsatz"
-          value={insights.peakRevenueHour != null ? formatHour(insights.peakRevenueHour) : "—"}
           accent
         />
         <KpiCard label="Stärkster Wochentag" value={insights.peakWeekday ?? "—"} />

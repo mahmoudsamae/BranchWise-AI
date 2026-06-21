@@ -19,7 +19,7 @@ import {
   BranchOperationsBar,
   BranchPeakTimeSection,
   BranchProductsSection,
-  BranchRevenueTrend,
+  BranchOrdersTrend,
 } from "@/components/fruhstuck/branch-insight-sections";
 import { Button } from "@/components/ui/Button";
 import { addBerlinDays, berlinTodayYmd } from "@/lib/fruhstuck/berlin-range";
@@ -131,7 +131,7 @@ export function BranchFruhstuckDashboard() {
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-bold text-white">Frühstück</h1>
           <p className="mt-1 text-sm text-[#9ca3af]">
-            {payload?.branch.branch_name ?? "Dein Standort"} — Bestellungen, Umsatz & Kennzahlen
+            {payload?.branch.branch_name ?? "Dein Standort"} — Bestellungen & Kennzahlen
           </p>
         </div>
       </header>
@@ -254,7 +254,7 @@ export function BranchFruhstuckDashboard() {
 
           <BranchKpiBar insights={insights} comparison={payload.comparison} />
 
-          <BranchRevenueTrend raw={raw} />
+          <BranchOrdersTrend raw={raw} />
 
           <BranchAfterHoursSection insights={insights} />
 
@@ -271,16 +271,14 @@ export function BranchFruhstuckDashboard() {
                 <p className="mt-1 text-sm text-[#9ca3af]">{payload.period_comparison.label}</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <KpiCard
                   label="Aktuell"
                   value={`${payload.period_comparison.current.orders} Best.`}
-                  sub={formatEuro(payload.period_comparison.current.revenue)}
                 />
                 <KpiCard
                   label="Vorperiode"
                   value={`${payload.period_comparison.previous.orders} Best.`}
-                  sub={formatEuro(payload.period_comparison.previous.revenue)}
                   accent
                 />
                 <KpiCard
@@ -288,14 +286,6 @@ export function BranchFruhstuckDashboard() {
                   value={
                     payload.period_comparison.orders_pct != null
                       ? `${payload.period_comparison.orders_pct > 0 ? "+" : ""}${payload.period_comparison.orders_pct}%`
-                      : "—"
-                  }
-                />
-                <KpiCard
-                  label="Δ Umsatz"
-                  value={
-                    payload.period_comparison.revenue_pct != null
-                      ? `${payload.period_comparison.revenue_pct > 0 ? "+" : ""}${payload.period_comparison.revenue_pct}%`
                       : "—"
                   }
                 />

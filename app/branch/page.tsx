@@ -183,13 +183,15 @@ export default async function BranchDashboardPage() {
         <div className="lg:col-span-2">
           <BranchIssuesSummary issues={issues} />
         </div>
-        <BranchReviewsReplyWidget payload={reviewsNeedingReply} />
+        <div className="space-y-4">
+          <BranchReviewsReplyWidget payload={reviewsNeedingReply} />
+          <BranchNpsAnalyticsWidget nps={npsAnalytics} />
+        </div>
       </div>
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-[#f9fafb]">Weitere Einblicke</h2>
         <div className="grid gap-4 lg:grid-cols-2">
-          <BranchNpsAnalyticsWidget nps={npsAnalytics} />
           <BranchSubmissionHistoryWidget history={submissionHistory} />
           <BranchGoogleReviewsWidget reviews={reviewsSummary} />
         </div>

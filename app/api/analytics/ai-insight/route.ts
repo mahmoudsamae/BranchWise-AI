@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     let kpiQ = supabase
       .from("kpis")
-      .select("branch_id, revenue, occupancy_rate, negative_feedback, positive_feedback, unpaid_departures, repeated_issues, support_needed, period_end, branches(name)")
+      .select("branch_id, occupancy_rate, negative_feedback, positive_feedback, unpaid_departures, repeated_issues, support_needed, period_end, branches(name)")
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const kpiLines = (kpis ?? []).map((k) => {
       const branch = k.branches as { name?: string } | { name?: string }[] | null;
       const branchName = Array.isArray(branch) ? branch[0]?.name : branch?.name;
-      return `- ${branchName ?? "Branch"} | period end ${k.period_end} | revenue €${Number(k.revenue ?? 0)} | occupancy ${Number(k.occupancy_rate ?? 0)}% | neg feedback ${Number(k.negative_feedback ?? 0)} | pos ${Number(k.positive_feedback ?? 0)} | issues ${Number(k.repeated_issues ?? 0)} | support ${Number(k.support_needed ?? 0)}`;
+      return `- ${branchName ?? "Branch"} | period end ${k.period_end} | occupancy ${Number(k.occupancy_rate ?? 0)}% | neg feedback ${Number(k.negative_feedback ?? 0)} | pos ${Number(k.positive_feedback ?? 0)} | issues ${Number(k.repeated_issues ?? 0)} | support ${Number(k.support_needed ?? 0)}`;
     });
 
     const context = [

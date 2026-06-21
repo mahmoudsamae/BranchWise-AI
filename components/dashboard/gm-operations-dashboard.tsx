@@ -332,10 +332,10 @@ export function GmOperationsDashboard() {
       <section className="rounded-2xl border border-[#1f2937] bg-[#111827] p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
-            Projekte über alle Filialen
+            Projekte & Probleme über alle Filialen
           </h2>
-          <Link href="/dashboard/projects" className="text-xs font-medium text-[#a5b4fc] hover:underline">
-            Alle Projekte →
+          <Link href="/dashboard/projects" className="text-xs font-medium text-[var(--accent-light)] hover:underline">
+            Alle öffnen →
           </Link>
         </div>
         {data.projects.length === 0 ? (
@@ -346,6 +346,7 @@ export function GmOperationsDashboard() {
               const style = PROJECT_STATUS[p.status];
               return (
                 <li key={p.id} className="space-y-2">
+                  <Link href={`/dashboard/projects?issue=${p.id}`} className="block rounded-lg transition hover:bg-[#0a0f1e]/40 -mx-2 px-2 py-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-medium text-white">
@@ -361,6 +362,7 @@ export function GmOperationsDashboard() {
                   <div className="h-1.5 overflow-hidden rounded-full bg-[#1f2937]">
                     <div className={`h-full rounded-full transition-all ${style.bar}`} style={{ width: `${p.progress}%` }} />
                   </div>
+                  </Link>
                 </li>
               );
             })}

@@ -175,6 +175,39 @@ export function canAccessIssue(issue: BranchIssue, branchId: string, userId: str
   return isCollaborator(issue, userId);
 }
 
+export async function listAllIssuesForGm(): Promise<BranchIssue[]> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("branch_issues")
+    .select(ISSUE_SELECT)
+    .eq("status", "open")
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => mapRowForGmViewer(row as IssueRow));
+}
+
+export async function getIssueForGm(issueId: string): Promise<BranchIssue | null> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase.from("branch_issues").select(ISSUE_SELECT).eq("id", issueId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapRowForGmViewer(data as IssueRow);
+}
+
+/** GM oversight — full visibility, no edit permissions. */
+function mapRowForGmViewer(row: IssueRow): BranchIssue {
+  const issue = mapRow(row, { branchId: row.branch_id, userId: "" });
+  return {
+    ...issue,
+    isOwner: false,
+    canManage: false,
+    canEditTasks: false,
+    canMutateTaskList: false,
+    isCollaborator: false,
+    sharedWithMe: false,
+  };
+}
+
 export async function getIssueAccessible(
   issueId: string,
   viewer: { branchId: string; userId: string },

@@ -617,7 +617,6 @@ export type Database = {
           branch_id: string
           date: string
           orders_count: number
-          revenue: number
           top_item: string | null
           items: Json
           raw_data: Json | null
@@ -628,7 +627,6 @@ export type Database = {
           branch_id: string
           date: string
           orders_count?: number
-          revenue?: number
           top_item?: string | null
           items: Json
           raw_data?: Json | null
@@ -639,7 +637,6 @@ export type Database = {
           branch_id?: string
           date?: string
           orders_count?: number
-          revenue?: number
           top_item?: string | null
           items?: Json
           raw_data?: Json | null
@@ -807,7 +804,6 @@ export type Database = {
           report_id: string
           period_start: string
           period_end: string
-          revenue: number | null
           occupancy_rate: number | null
           negative_feedback: number | null
           positive_feedback: number | null
@@ -829,7 +825,6 @@ export type Database = {
           report_id: string
           period_start: string
           period_end: string
-          revenue?: number | null
           occupancy_rate?: number | null
           negative_feedback?: number | null
           positive_feedback?: number | null
@@ -851,7 +846,6 @@ export type Database = {
           report_id?: string
           period_start?: string
           period_end?: string
-          revenue?: number | null
           occupancy_rate?: number | null
           negative_feedback?: number | null
           positive_feedback?: number | null

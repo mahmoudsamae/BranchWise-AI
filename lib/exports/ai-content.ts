@@ -15,9 +15,9 @@ const EXPORT_SYSTEM_MSG = {
 
 const AI_BRANCH_CAP = 10;
 
-/** Top branches by revenue for per-branch OpenAI calls (cost guard on large portfolios). */
+/** Top branches for per-branch OpenAI calls (cost guard on large portfolios). */
 function branchesForAi(bundle: ExportBundle): BranchKpiRow[] {
-  const sorted = [...bundle.by_branch].sort((a, b) => b.total_revenue - a.total_revenue);
+  const sorted = [...bundle.by_branch].sort((a, b) => b.reports_submitted - a.reports_submitted);
   return sorted.length > AI_BRANCH_CAP ? sorted.slice(0, AI_BRANCH_CAP) : sorted;
 }
 
@@ -25,7 +25,6 @@ function kpiJson(bundle: ExportBundle) {
   return JSON.stringify(
     bundle.by_branch.map((b) => ({
       branch: b.branch_name,
-      revenue: b.total_revenue,
       occupancy: b.avg_occupancy,
       negative_feedback: b.total_negative_feedback,
       reports: b.reports_submitted,
@@ -101,7 +100,7 @@ export async function generateComparisonEvaluation(bundle: ExportBundle) {
       EXPORT_SYSTEM_MSG,
       {
         role: "user",
-        content: `Compare these branches and explain which outperforms in revenue and where risks are. Be specific with branch names.\n\n${kpiJson(bundle)}`,
+        content: `Compare these branches and explain which outperforms in occupancy and operations and where risks are. Be specific with branch names.\n\n${kpiJson(bundle)}`,
       },
     ],
     500,

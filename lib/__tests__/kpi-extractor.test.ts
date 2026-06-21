@@ -28,7 +28,6 @@ describe("extractKPIsFromReportData", () => {
     expect(result.repeated_issues).toBe(1);
     expect(result.staff_morale).toBe("good");
     expect(result.support_needed).toBe(1);
-    expect(result.revenue).toBe(0);
     expect(result.occupancy_rate).toBe(0);
     expect(result.negative_feedback).toBe(0);
     expect(warn).not.toHaveBeenCalled();
@@ -54,7 +53,6 @@ describe("extractKPIsFromReportData", () => {
     expect(result.staff_morale).toBe("neutral");
     expect(result.has_staff_issues).toBe(false);
     expect(result.support_needed).toBe(0);
-    expect(result.revenue).toBe(0);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -66,10 +64,6 @@ describe("extractKPIsFromReportData", () => {
       random_metric: "42",
     });
 
-    expect(result.revenue).toBe(0);
-    expect(result.occupancy_rate).toBe(0);
-    expect(result.negative_feedback).toBe(0);
-    expect(result.positive_feedback).toBe(0);
     expect(result.overtime_hours).toBe(0);
     expect(warn).toHaveBeenCalledOnce();
     expect(warn).toHaveBeenCalledWith(

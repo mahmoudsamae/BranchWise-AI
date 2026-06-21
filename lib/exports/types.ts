@@ -18,7 +18,6 @@ export type ExportFruhstuckRow = {
   branch_name: string;
   date: string;
   orders_count: number;
-  revenue: number;
   top_item: string | null;
 };
 

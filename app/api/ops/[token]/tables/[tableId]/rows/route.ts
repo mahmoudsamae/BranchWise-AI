@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { validateOpsRowData, type OpsColumn } from "@/lib/branch-ops/columns";
+import { mergeReturnPatch } from "@/lib/branch-ops/log-rows";
 import { resolveBranchOpsToken, todayWorkDate } from "@/lib/branch-ops/resolve-token";
 import { createServiceRoleClient } from "@/lib/supabase";
 import { asJson } from "@/lib/supabase-json";
@@ -104,7 +105,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
     if (!existing.data) return NextResponse.json({ error: "Row not found" }, { status: 404 });
 
-    const merged = { ...(existing.data.data as Record<string, unknown>), ...(body.data ?? {}) };
+    const merged = mergeReturnPatch(
+      existing.data.data as Record<string, unknown>,
+      body.data ?? {},
+      columns,
+    );
     const validated = validateOpsRowData(columns, merged);
     if (!validated.ok) return NextResponse.json({ error: validated.error }, { status: 400 });
 

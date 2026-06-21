@@ -5,7 +5,6 @@ export type WeeklyDigestPayload = {
   submittedThisWeek: number;
   totalOverdue: number;
   noSubmissionBranches: string[];
-  topRevenueBranch: { branchName: string; revenue: number } | null;
   lowestOccupancyBranch: { branchName: string; occupancy: number } | null;
   healthiestBranches: { branchName: string; score: number; grade: string }[];
   leastHealthyBranches: { branchName: string; score: number; grade: string }[];
@@ -33,10 +32,6 @@ export async function sendWeeklyDigestEmail(opts: {
         </div>
       `
       : `<p style="color:#059669;margin:16px 0">All branches submitted at least one report this week.</p>`;
-
-  const topRevenue = digest.topRevenueBranch
-    ? `<p style="margin:0"><strong>Top revenue:</strong> ${escapeHtml(digest.topRevenueBranch.branchName)} (€${digest.topRevenueBranch.revenue.toLocaleString("en-GB")})</p>`
-    : `<p style="margin:0;color:#6b7280"><strong>Top revenue:</strong> No KPI data this week</p>`;
 
   const lowestOcc = digest.lowestOccupancyBranch
     ? `<p style="margin:8px 0 0 0"><strong>Lowest occupancy:</strong> ${escapeHtml(digest.lowestOccupancyBranch.branchName)} (${digest.lowestOccupancyBranch.occupancy}%)</p>`
@@ -87,7 +82,6 @@ export async function sendWeeklyDigestEmail(opts: {
 
         <div style="background:#f9fafb;border-radius:8px;padding:16px;margin:16px 0">
           <p style="margin:0 0 8px 0;font-weight:600;color:#111827">KPI highlights</p>
-          ${topRevenue}
           ${lowestOcc}
         </div>
 

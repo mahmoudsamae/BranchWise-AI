@@ -24,7 +24,6 @@ export function buildAnalyticsWorkbook(bundle: ExportBundle): Buffer {
     Branch: b.branch_name,
     "Period Start": bundle.start_date,
     "Period End": bundle.end_date,
-    Revenue: b.total_revenue,
     "Occupancy %": b.avg_occupancy,
     "Neg. Feedback": b.total_negative_feedback,
     "Pos. Feedback": b.positive_feedback,
@@ -39,7 +38,6 @@ export function buildAnalyticsWorkbook(bundle: ExportBundle): Buffer {
       { key: "Branch", label: "Branch" },
       { key: "Period Start", label: "Period Start" },
       { key: "Period End", label: "Period End" },
-      { key: "Revenue", label: "Revenue" },
       { key: "Occupancy %", label: "Occupancy %" },
       { key: "Neg. Feedback", label: "Neg. Feedback" },
       { key: "Pos. Feedback", label: "Pos. Feedback" },
@@ -98,7 +96,6 @@ export function buildAnalyticsWorkbook(bundle: ExportBundle): Buffer {
     Branch: f.branch_name,
     Date: f.date,
     Orders: f.orders_count,
-    Revenue: f.revenue,
     "Top Item": f.top_item ?? "—",
   }));
 
@@ -108,7 +105,6 @@ export function buildAnalyticsWorkbook(bundle: ExportBundle): Buffer {
       { key: "Branch", label: "Branch" },
       { key: "Date", label: "Date" },
       { key: "Orders", label: "Orders" },
-      { key: "Revenue", label: "Revenue" },
       { key: "Top Item", label: "Top Item" },
     ]),
     "Frühstück",

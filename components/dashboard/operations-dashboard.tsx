@@ -19,7 +19,7 @@ function healthScoreCell(score: number, grade: string) {
   const dotColor =
     grade === "A" || grade === "B" ? "bg-emerald-400" : grade === "C" ? "bg-amber-400" : "bg-red-400";
   const tooltip =
-    "Branch Health Score (0–100): combines on-time submissions, revenue trend, occupancy, and feedback. Higher is better.";
+    "Branch Health Score (0–100): kombiniert pünktliche Abgaben, Auslastung und Feedback. Höher ist besser.";
 
   return (
     <span title={tooltip} className="inline-flex cursor-help items-center gap-1.5">
@@ -88,11 +88,10 @@ export function OperationsDashboard({ mode }: { mode: "gm" | "hr" }) {
           </div>
 
           {showGmExtras ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Revenue this week" value={`€${stats.revenue_week.toLocaleString()}`} color="purple" />
-              <StatCard label="Avg occupancy" value={stats.avg_occupancy != null ? `${stats.avg_occupancy}%` : "—"} color="blue" />
-              <StatCard label="Negative feedback" value={stats.negative_feedback_week} color="red" />
-              <StatCard label="Unread messages" value={stats.unread_messages} color="blue" />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <StatCard label="Ø Auslastung" value={stats.avg_occupancy != null ? `${stats.avg_occupancy}%` : "—"} color="blue" />
+              <StatCard label="Negatives Feedback" value={stats.negative_feedback_week} color="red" />
+              <StatCard label="Ungelesene Nachrichten" value={stats.unread_messages} color="blue" />
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -178,8 +177,7 @@ export function OperationsDashboard({ mode }: { mode: "gm" | "hr" }) {
                     <TableRow>
                       <TableCell as="th">Branch</TableCell>
                       <TableCell as="th">Last report</TableCell>
-                      <TableCell as="th">Occupancy</TableCell>
-                      <TableCell as="th">Revenue</TableCell>
+                      <TableCell as="th">Auslastung</TableCell>
                       <TableCell as="th">Health</TableCell>
                     </TableRow>
                   </TableHead>
@@ -193,7 +191,6 @@ export function OperationsDashboard({ mode }: { mode: "gm" | "hr" }) {
                         </TableCell>
                         <TableCell>{b.last_report_at ? new Date(b.last_report_at).toLocaleDateString() : "—"}</TableCell>
                         <TableCell>{b.occupancy_rate != null ? `${b.occupancy_rate}%` : "—"}</TableCell>
-                        <TableCell>{b.revenue != null ? `€${b.revenue}` : "—"}</TableCell>
                         <TableCell>{healthScoreCell(b.health_score, b.health_grade)}</TableCell>
                       </TableRow>
                     ))}

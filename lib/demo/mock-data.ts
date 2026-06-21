@@ -127,7 +127,6 @@ export function demoDashboardStats(): DashboardStats {
     overdue_reports: 3,
     pending_review: 8,
     submitted_this_week: 37,
-    revenue_week: 284_500,
     avg_occupancy: 82.4,
     negative_feedback_week: 5,
     unread_messages: 9,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -25,7 +25,7 @@ const STAFF_BADGE_STYLES = [
   "bg-violet-500/20 text-violet-200 ring-violet-500/30",
   "bg-sky-500/20 text-sky-200 ring-sky-500/30",
   "bg-amber-500/20 text-amber-200 ring-amber-500/30",
-  "bg-rose-500/20 text-rose-200 ring-rose-500/30",
+  "bg-rose-500/20 text-rose-200 ring-amber-500/30",
 ];
 
 function staffBadgeStyle(name: string): string {
@@ -41,6 +41,24 @@ function formatTime(iso: string | null) {
 
 function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
+
+function defaultCollapsedState(
+  grouped: { group: { id: OpsTimeGroup }; items: OpsDailyTaskItem[] }[],
+): Record<OpsTimeGroup, boolean> {
+  const state = {} as Record<OpsTimeGroup, boolean>;
+  for (const { group, items } of grouped) {
+    const openCount = items.filter((i) => !i.completed).length;
+    // Collapse sections with no open tasks; keep first section with open tasks expanded
+    state[group.id] = openCount === 0;
+  }
+  const firstWithOpen = grouped.find((g) => g.items.some((i) => !i.completed));
+  if (firstWithOpen) {
+    state[firstWithOpen.group.id] = false;
+  } else if (grouped[0]) {
+    state[grouped[0].group.id] = false;
+  }
+  return state;
 }
 
 export function OpsDailyTaskList({
@@ -59,11 +77,6 @@ export function OpsDailyTaskList({
   const [staffPick, setStaffPick] = useState<Record<string, string>>({});
   const [openAssign, setOpenAssign] = useState<string | null>(null);
 
-  const doneCount = items.filter((i) => i.completed).length;
-  const total = items.length;
-  const openCount = total - doneCount;
-  const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-
   const grouped = useMemo(() => {
     const map = new Map<OpsTimeGroup, OpsDailyTaskItem[]>();
     for (const g of OPS_TIME_GROUPS) map.set(g.id, []);
@@ -75,12 +88,25 @@ export function OpsDailyTaskList({
     return OPS_TIME_GROUPS.map((g) => ({ group: g, items: map.get(g.id) ?? [] })).filter((x) => x.items.length > 0);
   }, [items]);
 
+  const [collapsed, setCollapsed] = useState<Record<OpsTimeGroup, boolean>>(() =>
+    defaultCollapsedState(grouped),
+  );
+
+  useEffect(() => {
+    setCollapsed(defaultCollapsedState(grouped));
+  }, [grouped]);
+
+  const doneCount = items.filter((i) => i.completed).length;
+  const total = items.length;
+  const openCount = total - doneCount;
+  const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
   if (items.length === 0) {
     return <p className="text-sm text-[#6b7280]">Noch keine Aufgaben definiert.</p>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-white">
@@ -88,7 +114,7 @@ export function OpsDailyTaskList({
           </span>
           <span className="text-[#9ca3af]">{openCount} offen</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#1f2937]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#1f2937]">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
             style={{ width: `${progress}%` }}
@@ -96,105 +122,129 @@ export function OpsDailyTaskList({
         </div>
       </div>
 
-      {grouped.map(({ group, items: groupItems }) => (
-        <section key={group.id} className="space-y-3">
-          <div>
-            <h3 className="text-xs font-bold tracking-widest text-[#9ca3af]">{group.label}</h3>
-            {group.hint ? <p className="text-[10px] text-[#6b7280]">{group.hint}</p> : null}
-          </div>
-          <div className="space-y-2">
-            {groupItems.map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
-                  item.completed ? "border-emerald-500/25 bg-emerald-950/15" : "border-[#1f2937] bg-[#0d1324]",
-                )}
-              >
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <span
+      {grouped.map(({ group, items: groupItems }) => {
+        const groupDone = groupItems.filter((i) => i.completed).length;
+        const isCollapsed = collapsed[group.id] ?? false;
+
+        return (
+          <section key={group.id} className="overflow-hidden rounded-xl border border-[#1f2937] bg-[#0d1324]/80">
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: !isCollapsed }))}
+              className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[#111827]/60"
+              aria-expanded={!isCollapsed}
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ChevronDown
                     className={cn(
-                      "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border",
-                      item.completed
-                        ? "border-[#6366f1] bg-[#6366f1] text-white"
-                        : "border-[#374151] bg-transparent",
+                      "size-4 shrink-0 text-[#6b7280] transition-transform",
+                      isCollapsed && "-rotate-90",
                     )}
                     aria-hidden
-                  >
-                    {item.completed ? <Check className="size-3.5" /> : null}
+                  />
+                  <h3 className="text-xs font-bold tracking-widest text-[#9ca3af]">{group.label}</h3>
+                  <span className="text-[10px] text-[#6b7280]">
+                    {groupDone}/{groupItems.length}
                   </span>
-                  <div className="min-w-0">
-                    <p className={cn("font-medium", item.completed ? "text-emerald-100" : "text-white")}>{item.label}</p>
-                    {item.time_hint ? <p className="text-xs italic text-[#6b7280]">{item.time_hint}</p> : null}
-                    {item.completed && item.staff_name ? (
-                      <p className="mt-0.5 text-xs text-emerald-400/80">
-                        {formatTime(item.completed_at) ? `um ${formatTime(item.completed_at)}` : "Erledigt"}
-                      </p>
-                    ) : readOnly ? (
-                      <p className="mt-0.5 text-xs text-[#6b7280]">Nicht erledigt</p>
-                    ) : null}
-                  </div>
                 </div>
-
-                <div className="flex shrink-0 items-center justify-end gap-2 sm:pl-4">
-                  {item.completed && item.staff_name ? (
-                    <span
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold ring-1",
-                        staffBadgeStyle(item.staff_name),
-                      )}
-                    >
-                      {firstName(item.staff_name)}
-                    </span>
-                  ) : !readOnly && onComplete && staff && staff.length > 0 ? (
-                    <>
-                      {openAssign === item.id ? (
-                        <select
-                          autoFocus
-                          value={staffPick[item.id] ?? ""}
-                          onChange={(e) => setStaffPick((p) => ({ ...p, [item.id]: e.target.value }))}
-                          className="rounded-lg border border-[#374151] bg-[#0a0f1e] px-2 py-1.5 text-sm text-white"
-                        >
-                          <option value="">Name wählen…</option>
-                          {staff.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.full_name}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={savingItemId === item.id}
-                        onClick={() => {
-                          const staffId = staffPick[item.id];
-                          if (!staffId) {
-                            setOpenAssign(item.id);
-                            return;
-                          }
-                          void onComplete(item.id, staffId).then(() => setOpenAssign(null));
-                        }}
-                      >
-                        {savingItemId === item.id ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <>
-                            Zuweisen <ChevronDown className="size-3.5" />
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  ) : !item.completed ? (
-                    <span className="text-xs text-[#6b7280]">—</span>
-                  ) : null}
-                </div>
+                {group.hint ? <p className="mt-0.5 pl-6 text-[10px] text-[#6b7280]">{group.hint}</p> : null}
               </div>
-            ))}
-          </div>
-        </section>
-      ))}
+            </button>
+
+            {!isCollapsed ? (
+              <div className="space-y-1.5 border-t border-[#1f2937] px-2 py-2">
+                {groupItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "flex flex-col gap-2 rounded-lg border px-3 py-2 sm:flex-row sm:items-center sm:justify-between",
+                      item.completed ? "border-emerald-500/20 bg-emerald-950/10" : "border-[#1f2937] bg-[#0a0f1e]/40",
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex size-4 shrink-0 items-center justify-center rounded border",
+                          item.completed
+                            ? "border-[#6366f1] bg-[#6366f1] text-white"
+                            : "border-[#374151] bg-transparent",
+                        )}
+                        aria-hidden
+                      >
+                        {item.completed ? <Check className="size-3" /> : null}
+                      </span>
+                      <div className="min-w-0">
+                        <p className={cn("text-sm font-medium leading-snug", item.completed ? "text-emerald-100" : "text-white")}>
+                          {item.label}
+                        </p>
+                        {item.time_hint ? (
+                          <p className="text-[10px] italic text-[#6b7280]">{item.time_hint}</p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center justify-end gap-2 pl-6 sm:pl-0">
+                      {item.completed && item.staff_name ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
+                            staffBadgeStyle(item.staff_name),
+                          )}
+                        >
+                          {firstName(item.staff_name)}
+                          {formatTime(item.completed_at) ? ` · ${formatTime(item.completed_at)}` : ""}
+                        </span>
+                      ) : !readOnly && onComplete && staff && staff.length > 0 ? (
+                        <>
+                          {openAssign === item.id ? (
+                            <select
+                              autoFocus
+                              value={staffPick[item.id] ?? ""}
+                              onChange={(e) => setStaffPick((p) => ({ ...p, [item.id]: e.target.value }))}
+                              className="max-w-[140px] rounded border border-[#374151] bg-[#0a0f1e] px-2 py-1 text-xs text-white"
+                            >
+                              <option value="">Name…</option>
+                              {staff.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.full_name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : null}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 px-2 text-xs"
+                            disabled={savingItemId === item.id}
+                            onClick={() => {
+                              const staffId = staffPick[item.id];
+                              if (!staffId) {
+                                setOpenAssign(item.id);
+                                return;
+                              }
+                              void onComplete(item.id, staffId).then(() => setOpenAssign(null));
+                            }}
+                          >
+                            {savingItemId === item.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              "Zuweisen"
+                            )}
+                          </Button>
+                        </>
+                      ) : !item.completed && readOnly ? (
+                        <span className="text-[10px] text-[#6b7280]">Offen</span>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
     </div>
   );
 }

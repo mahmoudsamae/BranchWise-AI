@@ -12,6 +12,7 @@ import { formatWorkDate } from "@/lib/branch-ops/dates";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import type { OpsColumn } from "@/lib/branch-ops/columns";
+import { sanitizeOpsColumns, validateOpsColumnsForSave } from "@/lib/branch-ops/columns";
 import { OPS_TABLE_PRESETS } from "@/lib/branch-ops/presets";
 
 type DailyItem = { id?: string; label: string; time_hint?: string | null; time_group?: string };
@@ -156,6 +157,18 @@ export function OpsManagerClient() {
       showToast("Table name is required", "error");
       return;
     }
+    if (customType === "log") {
+      const columns = sanitizeOpsColumns(customColumns);
+      const columnError = validateOpsColumnsForSave(columns);
+      if (columns.length === 0) {
+        showToast("Add at least one column", "error");
+        return;
+      }
+      if (columnError) {
+        showToast(columnError, "error");
+        return;
+      }
+    }
     setCreating(true);
     try {
       const dailyItems =
@@ -171,7 +184,7 @@ export function OpsManagerClient() {
         body: JSON.stringify({
           name: customName.trim(),
           table_type: customType,
-          columns: customType === "log" ? customColumns : [],
+          columns: customType === "log" ? sanitizeOpsColumns(customColumns) : [],
           daily_items: dailyItems,
         }),
       });
@@ -236,12 +249,18 @@ export function OpsManagerClient() {
       showToast("Add at least one column", "error");
       return;
     }
+    const columns = sanitizeOpsColumns(editForm.columns);
+    const columnError = editForm.tableType === "log" ? validateOpsColumnsForSave(columns) : null;
+    if (columnError) {
+      showToast(columnError, "error");
+      return;
+    }
 
     setSavingEdit(true);
     try {
       const body: Record<string, unknown> = { name: editForm.name.trim() };
       if (editForm.tableType === "log") {
-        body.columns = editForm.columns;
+        body.columns = columns;
       } else {
         body.daily_items = mergeGroupDrafts(
           editForm.morningText,

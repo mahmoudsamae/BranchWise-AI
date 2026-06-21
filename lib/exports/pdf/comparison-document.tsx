@@ -36,7 +36,6 @@ export function ComparisonReportDocument({
         </View>
         {(
           [
-            ["Revenue (€)", (b: (typeof bundle.by_branch)[number]) => String(b.total_revenue)],
             ["Occupancy %", (b: (typeof bundle.by_branch)[number]) => `${b.avg_occupancy}%`],
             ["Neg. feedback", (b: (typeof bundle.by_branch)[number]) => String(b.total_negative_feedback)],
             ["Reports", (b: (typeof bundle.by_branch)[number]) => String(b.reports_submitted)],

@@ -52,7 +52,6 @@ export function ManagementReportDocument({ bundle, executiveSummary, highlights,
         <Text style={s.h1}>KPI Overview</Text>
         <View style={s.tableHeader}>
           <Text style={s.cell}>Branch</Text>
-          <Text style={s.cell}>Revenue</Text>
           <Text style={s.cell}>Occupancy</Text>
           <Text style={s.cell}>Neg. FB</Text>
           <Text style={s.cell}>Issues</Text>
@@ -61,7 +60,6 @@ export function ManagementReportDocument({ bundle, executiveSummary, highlights,
         {bundle.by_branch.map((b) => (
           <View key={b.branch_id} style={s.tableRow}>
             <Text style={s.cell}>{b.branch_name}</Text>
-            <Text style={s.cell}>€{b.total_revenue}</Text>
             <Text style={s.cell}>{b.avg_occupancy}%</Text>
             <Text style={s.cell}>{b.total_negative_feedback}</Text>
             <Text style={s.cell}>{b.repeated_issues}</Text>
@@ -77,8 +75,7 @@ export function ManagementReportDocument({ bundle, executiveSummary, highlights,
           <Page key={b.branch_id} size="A4" style={s.page}>
             <Text style={s.h1}>{b.branch_name}</Text>
             <Text style={s.paragraph}>
-              Revenue €{b.total_revenue} · Occupancy {b.avg_occupancy}% · Negative feedback {b.total_negative_feedback} ·
-              Reports {b.reports_submitted}
+              Occupancy {b.avg_occupancy}% · Negative feedback {b.total_negative_feedback} · Reports {b.reports_submitted}
             </Text>
             <Text style={s.h2}>AI insight</Text>
             <Text style={s.paragraph}>{branchInsights[b.branch_id] ?? "—"}</Text>

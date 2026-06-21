@@ -123,7 +123,7 @@ async function buildReportsContextFromDb(supabase: SupabaseClient, hrOnly: boole
 
   const { data: kpis } = await supabase
     .from("kpis")
-    .select("branch_id, period_start, period_end, revenue, occupancy_rate, negative_feedback, created_at, report_id")
+    .select("branch_id, period_start, period_end, occupancy_rate, negative_feedback, created_at, report_id")
     .order("created_at", { ascending: false })
     .limit(30);
 
@@ -142,7 +142,7 @@ async function buildReportsContextFromDb(supabase: SupabaseClient, hrOnly: boole
   for (const k of kpiList) {
     const week = String(k.period_end ?? k.created_at).slice(0, 10);
     lines.push(
-      `Branch: ${kpiBranchName.get(k.branch_id as string) ?? "?"} | Week: ${week} | Revenue: €${k.revenue ?? 0} | Occupancy: ${k.occupancy_rate ?? "n/a"}% | Negative feedback: ${k.negative_feedback ?? 0}`,
+      `Branch: ${kpiBranchName.get(k.branch_id as string) ?? "?"} | Week: ${week} | Occupancy: ${k.occupancy_rate ?? "n/a"}% | Negative feedback: ${k.negative_feedback ?? 0}`,
     );
   }
   if (kpiList.length === 0) lines.push("(no KPI rows)");

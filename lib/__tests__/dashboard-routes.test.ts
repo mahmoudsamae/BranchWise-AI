@@ -28,6 +28,8 @@ describe("dashboard-routes", () => {
 
     expect(gmDashboardLegacyRedirect("/dashboard/reports/r1")).toBeNull();
 
+    expect(gmDashboardLegacyRedirect("/dashboard/fruhstuck")).toBeNull();
+
   });
 
 });

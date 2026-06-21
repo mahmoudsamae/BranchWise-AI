@@ -3,7 +3,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isoWeekLabel, resolvePeriod, type DateRange } from "@/lib/gm-hr/analytics-period";
 
 export type KpiSummary = {
-  total_revenue: number;
   avg_occupancy: number;
   total_negative_feedback: number;
   unpaid_departures: number;
@@ -16,7 +15,6 @@ export type KpiSummary = {
 export type BranchKpiRow = KpiSummary & {
   branch_id: string;
   branch_name: string;
-  revenue: number;
   occupancy_rate: number;
   negative_feedback: number;
   positive_feedback: number;
@@ -24,7 +22,6 @@ export type BranchKpiRow = KpiSummary & {
 
 function emptySummary(): KpiSummary {
   return {
-    total_revenue: 0,
     avg_occupancy: 0,
     total_negative_feedback: 0,
     unpaid_departures: 0,
@@ -40,7 +37,6 @@ function aggregateKpiRows(rows: Record<string, unknown>[]): KpiSummary {
   let occSum = 0;
   let occN = 0;
   for (const r of rows) {
-    s.total_revenue += Number(r.revenue ?? 0);
     s.total_negative_feedback += Number(r.negative_feedback ?? 0);
     s.unpaid_departures += Number(r.unpaid_departures ?? 0);
     s.positive_feedback += Number(r.positive_feedback ?? 0);
@@ -72,7 +68,7 @@ async function fetchKpisInRange(
   let q = supabase
     .from("kpis")
     .select(
-      "branch_id, revenue, occupancy_rate, negative_feedback, positive_feedback, unpaid_departures, repeated_issues, support_needed, period_start, period_end, created_at, report_id",
+      "branch_id, occupancy_rate, negative_feedback, positive_feedback, unpaid_departures, repeated_issues, support_needed, period_start, period_end, created_at, report_id",
     )
     .gte("period_end", range.start)
     .lte("period_end", range.end);
@@ -146,7 +142,6 @@ export async function getAnalyticsKpis(
       ...agg,
       branch_id,
       branch_name: nameMap.get(branch_id) ?? "Branch",
-      revenue: agg.total_revenue,
       occupancy_rate: agg.avg_occupancy,
       negative_feedback: agg.total_negative_feedback,
       reports_submitted: branchReps.length,
@@ -171,11 +166,10 @@ export async function getAnalyticsTrends(
     week: string;
     branch_id: string;
     branch_name: string;
-    revenue: number;
     occupancy_rate: number;
   };
 
-  const weekBranch = new Map<string, { revenue: number; occSum: number; occN: number }>();
+  const weekBranch = new Map<string, { occSum: number; occN: number }>();
   const fbMap = new Map<string, { pos: number; neg: number }>();
   const issMap = new Map<string, { rep: number; support: number; unpaid: number }>();
 
@@ -183,8 +177,7 @@ export async function getAnalyticsTrends(
     const week = isoWeekLabel(String(r.period_end ?? r.period_start ?? r.created_at).slice(0, 10));
     const bid = r.branch_id as string;
     const key = `${week}|${bid}`;
-    const bucket = weekBranch.get(key) ?? { revenue: 0, occSum: 0, occN: 0 };
-    bucket.revenue += Number(r.revenue ?? 0);
+    const bucket = weekBranch.get(key) ?? { occSum: 0, occN: 0 };
     if (r.occupancy_rate != null) {
       bucket.occSum += Number(r.occupancy_rate);
       bucket.occN += 1;
@@ -213,7 +206,6 @@ export async function getAnalyticsTrends(
       week,
       branch_id,
       branch_name: nameMap.get(branch_id) ?? branch_id,
-      revenue: bucket.revenue,
       occupancy_rate: bucket.occN > 0 ? Math.round((bucket.occSum / bucket.occN) * 10) / 10 : 0,
     });
   }
@@ -248,9 +240,7 @@ export async function getAnalyticsComparison(supabase: SupabaseClient, branchIds
   for (const b of branches ?? []) {
     const rows = await fetchKpisInRange(supabase, range, b.id, hrOnly);
     const agg = aggregateKpiRows(rows);
-    const maxRev = 10000;
     const scores = {
-      revenue_score: Math.min(100, Math.round((agg.total_revenue / maxRev) * 100)),
       occupancy_score: Math.min(100, Math.round(agg.avg_occupancy)),
       feedback_score: Math.max(0, 100 - agg.total_negative_feedback * 10),
       issue_score: Math.max(0, 100 - agg.repeated_issues * 15),

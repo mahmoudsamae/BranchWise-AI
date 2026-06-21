@@ -43,7 +43,7 @@ export async function buildWeeklyDigest(supabase: SupabaseClient): Promise<Weekl
         .gte("submitted_at", weekAgo),
       supabase
         .from("kpis")
-        .select("branch_id, revenue, occupancy_rate, created_at")
+        .select("branch_id, occupancy_rate, created_at")
         .gte("created_at", weekAgo),
     ]);
 
@@ -56,24 +56,15 @@ export async function buildWeeklyDigest(supabase: SupabaseClient): Promise<Weekl
 
   const totalOverdue = (pendingReqs ?? []).filter((r) => String(r.due_date) < today).length;
 
-  const revenueByBranch = new Map<string, number>();
   const occSumByBranch = new Map<string, { sum: number; count: number }>();
 
   for (const k of kpisWeek ?? []) {
     const bid = k.branch_id as string;
-    revenueByBranch.set(bid, (revenueByBranch.get(bid) ?? 0) + Number(k.revenue ?? 0));
     if (k.occupancy_rate != null) {
       const prev = occSumByBranch.get(bid) ?? { sum: 0, count: 0 };
       prev.sum += Number(k.occupancy_rate);
       prev.count += 1;
       occSumByBranch.set(bid, prev);
-    }
-  }
-
-  let topRevenueBranch: WeeklyDigestPayload["topRevenueBranch"] = null;
-  for (const [branchId, revenue] of revenueByBranch) {
-    if (!topRevenueBranch || revenue > topRevenueBranch.revenue) {
-      topRevenueBranch = { branchName: branchName.get(branchId) ?? "Branch", revenue };
     }
   }
 
@@ -107,7 +98,6 @@ export async function buildWeeklyDigest(supabase: SupabaseClient): Promise<Weekl
     submittedThisWeek: submittedThisWeek ?? 0,
     totalOverdue,
     noSubmissionBranches,
-    topRevenueBranch,
     lowestOccupancyBranch,
     healthiestBranches,
     leastHealthyBranches,

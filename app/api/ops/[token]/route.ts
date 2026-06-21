@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { fetchDailyItemsForDate } from "@/lib/branch-ops/fetch-daily-for-date";
+import { filterOpenLogRows, purgeExpiredReturnedRows } from "@/lib/branch-ops/log-rows";
 import { resolveBranchOpsToken, todayWorkDate } from "@/lib/branch-ops/resolve-token";
+import type { OpsColumn } from "@/lib/branch-ops/columns";
 import { createServiceRoleClient } from "@/lib/supabase";
 
 type Params = { params: Promise<{ token: string }> };
@@ -43,6 +45,7 @@ export async function GET(request: Request, { params }: Params) {
         const items = await fetchDailyItemsForDate(supabase, table.id, workDate, staffMap);
         tables.push({ ...table, items });
       } else {
+        const columns = (table.columns ?? []) as OpsColumn[];
         const { data: rows } = await supabase
           .from("branch_ops_rows")
           .select("id, data, staff_member_id, created_at")
@@ -50,15 +53,21 @@ export async function GET(request: Request, { params }: Params) {
           .eq("work_date", workDate)
           .order("created_at", { ascending: false });
 
+        const rawRows = (rows ?? []).map((r) => ({
+          id: r.id,
+          data: r.data as Record<string, unknown>,
+          staff_member_id: r.staff_member_id,
+          staff_name: r.staff_member_id ? staffMap.get(r.staff_member_id) ?? null : null,
+          created_at: r.created_at,
+        }));
+
+        await purgeExpiredReturnedRows(supabase, table.id, columns, rawRows);
+
+        const visible = filterOpenLogRows(rawRows, columns);
+
         tables.push({
           ...table,
-          rows: (rows ?? []).map((r) => ({
-            id: r.id,
-            data: r.data,
-            staff_member_id: r.staff_member_id,
-            staff_name: r.staff_member_id ? staffMap.get(r.staff_member_id) ?? null : null,
-            created_at: r.created_at,
-          })),
+          rows: visible.map(({ staff_member_id: _s, ...r }) => r),
         });
       }
     }

@@ -57,12 +57,12 @@ function buildTrendSeries(branches: FruhstuckBranchPayload[]) {
   const names: string[] = [];
 
   for (const b of branches) {
-    const days = b.raw_data?.revenue?.revenuePerDay ?? [];
+    const days = b.raw_data?.timeAnalytics?.ordersByDay ?? [];
     if (!days.length) continue;
     names.push(b.branch_name);
     for (const point of days) {
       if (!byDate.has(point.date)) byDate.set(point.date, {});
-      byDate.get(point.date)![b.branch_name] = point.revenue;
+      byDate.get(point.date)![b.branch_name] = point.count;
     }
   }
 
@@ -188,7 +188,7 @@ export function FruhstuckDashboard() {
     void loadData();
   }, [loadData]);
 
-  const sortedRows = useMemo(() => [...rows].sort((a, b) => b.revenue - a.revenue), [rows]);
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => b.orders_count - a.orders_count), [rows]);
 
   const insights = useMemo(
     () => (sortedRows.length > 0 ? buildPortfolioInsights(sortedRows) : null),
@@ -196,21 +196,15 @@ export function FruhstuckDashboard() {
   );
 
   const stats = useMemo(() => {
-    const revenues = sortedRows.map((r) => r.revenue);
     const orders = sortedRows.map((r) => r.orders_count);
-    const avgs = sortedRows.map((r) => (r.orders_count > 0 ? r.revenue / r.orders_count : 0));
     return {
-      minRev: Math.min(...revenues, 0),
-      maxRev: Math.max(...revenues, 0),
       minOrd: Math.min(...orders, 0),
       maxOrd: Math.max(...orders, 0),
-      minAvg: Math.min(...avgs, 0),
-      maxAvg: Math.max(...avgs, 0),
     };
   }, [sortedRows]);
 
   const barData = useMemo(
-    () => sortedRows.map((r) => ({ name: r.branch_name, revenue: r.revenue })),
+    () => sortedRows.map((r) => ({ name: r.branch_name, orders: r.orders_count })),
     [sortedRows],
   );
 
@@ -347,15 +341,13 @@ export function FruhstuckDashboard() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sortedRows.map((r) => (
-              <article key={r.branch_id} className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
+              <article key={r.branch_id} className="bw-card p-4">
                 <h3 className="font-bold text-white">{r.branch_name}</h3>
-                <p className="text-xs text-[#6b7280]">slug: {r.external_id}</p>
-                <p className="mt-3 text-3xl font-bold text-white">{r.orders_count}</p>
-                <p className="text-xs text-[#6b7280]">Orders</p>
-                <p className="mt-2 text-2xl font-bold text-[#a5b4fc]">{formatEuro(r.revenue)}</p>
-                <p className="text-xs text-[#6b7280]">Revenue</p>
-                <p className="mt-3 text-sm text-[#9ca3af]">
-                  Top: <span className="text-[#f9fafb]">{r.top_product ?? "—"}</span>
+                <p className="text-xs text-[var(--text-muted)]">Slug: {r.external_id}</p>
+                <p className="mt-3 text-3xl font-bold text-[var(--accent-light)]">{r.orders_count}</p>
+                <p className="text-xs text-[var(--text-muted)]">Bestellungen</p>
+                <p className="mt-3 text-sm text-[var(--text-secondary)]">
+                  Top: <span className="text-white">{r.top_product ?? "—"}</span>
                 </p>
                 <Button type="button" variant="secondary" className="mt-4 w-full text-sm" onClick={() => setDetail(r)}>
                   Details
@@ -368,62 +360,51 @@ export function FruhstuckDashboard() {
 
       {sortedRows.length > 0 ? (
         <>
-          <section className="overflow-x-auto rounded-xl border border-[#1f2937] bg-[#111827]">
-            <h2 className="border-b border-[#1f2937] px-4 py-3 text-lg font-semibold text-white">Comparison</h2>
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="text-xs uppercase text-[#6b7280]">
-                <tr className="border-b border-[#1f2937]">
-                  <th className="px-4 py-3">Branch</th>
-                  <th className="px-4 py-3">Orders</th>
-                  <th className="px-4 py-3">Revenue</th>
-                  <th className="px-4 py-3">Top product</th>
-                  <th className="px-4 py-3">Avg order</th>
+          <section className="overflow-x-auto bw-card">
+            <h2 className="border-b border-[var(--border)] px-4 py-3 text-lg font-semibold text-white">Vergleich</h2>
+            <table className="w-full min-w-[480px] text-left text-sm">
+              <thead className="text-xs uppercase text-[var(--text-muted)]">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-4 py-3">Filiale</th>
+                  <th className="px-4 py-3">Bestellungen</th>
+                  <th className="px-4 py-3">Top-Produkt</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((r) => {
-                  const avg = r.orders_count > 0 ? r.revenue / r.orders_count : 0;
-                  return (
-                    <tr key={r.branch_id} className="border-b border-[#1f2937]/60 text-[#e5e7eb]">
-                      <td className="px-4 py-3 font-medium text-white">{r.branch_name}</td>
-                      <td className={cn("px-4 py-3", highlightClass(r.orders_count, stats.minOrd, stats.maxOrd))}>
-                        {r.orders_count}
-                      </td>
-                      <td className={cn("px-4 py-3", highlightClass(r.revenue, stats.minRev, stats.maxRev))}>
-                        {formatEuro(r.revenue)}
-                      </td>
-                      <td className="px-4 py-3">{r.top_product ?? "—"}</td>
-                      <td className={cn("px-4 py-3", highlightClass(avg, stats.minAvg, stats.maxAvg))}>
-                        {formatEuro(avg)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {sortedRows.map((r) => (
+                  <tr key={r.branch_id} className="border-b border-[var(--border)]/60 text-[#e5e7eb]">
+                    <td className="px-4 py-3 font-medium text-white">{r.branch_name}</td>
+                    <td className={cn("px-4 py-3", highlightClass(r.orders_count, stats.minOrd, stats.maxOrd))}>
+                      {r.orders_count}
+                    </td>
+                    <td className="px-4 py-3">{r.top_product ?? "—"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Revenue by branch</h2>
+            <div className="bw-card p-4">
+              <h2 className="mb-4 text-lg font-semibold text-white">Bestellungen je Filiale</h2>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData}>
-                    <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                    <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} />
+                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
+                    <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 11 }} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "#111827", border: "1px solid #1f2937", borderRadius: 8 }}
-                      formatter={(v) => [formatEuro(Number(v)), "Revenue"]}
+                      contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
+                      formatter={(v) => [v, "Bestellungen"]}
                     />
-                    <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="orders" fill="var(--accent)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-4">
-              <h2 className="mb-4 text-lg font-semibold text-white">Revenue per day</h2>
+            <div className="bw-card p-4">
+              <h2 className="mb-4 text-lg font-semibold text-white">Bestellungen pro Tag</h2>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={trendSeries}>
@@ -462,44 +443,30 @@ export function FruhstuckDashboard() {
               </button>
             </div>
 
-            <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-2">
               <div>
-                <p className="text-[#6b7280]">Orders</p>
+                <p className="text-[var(--text-muted)]">Bestellungen</p>
                 <p className="text-xl font-bold text-white">{detail.orders_count}</p>
               </div>
               <div>
-                <p className="text-[#6b7280]">Revenue</p>
-                <p className="text-xl font-bold text-[#a5b4fc]">{formatEuro(detail.revenue)}</p>
-              </div>
-              <div>
-                <p className="text-[#6b7280]">Items sold</p>
+                <p className="text-[var(--text-muted)]">Artikel verkauft</p>
                 <p className="text-xl font-bold text-white">{detailRaw?.summary?.itemsSold ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-[#6b7280]">Avg order</p>
-                <p className="text-xl font-bold text-white">
-                  {detailRaw?.summary?.averageOrderValue != null
-                    ? formatEuro(detailRaw.summary.averageOrderValue)
-                    : "—"}
-                </p>
               </div>
             </div>
 
-            <h4 className="mb-2 font-semibold text-white">Top products</h4>
+            <h4 className="mb-2 font-semibold text-white">Top-Produkte</h4>
             <table className="mb-6 w-full text-left text-sm">
-              <thead className="text-xs uppercase text-[#6b7280]">
-                <tr className="border-b border-[#1f2937]">
-                  <th className="py-2">Product</th>
-                  <th className="py-2">Count</th>
-                  <th className="py-2">Revenue</th>
+              <thead className="text-xs uppercase text-[var(--text-muted)]">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="py-2">Produkt</th>
+                  <th className="py-2">Stück</th>
                 </tr>
               </thead>
               <tbody>
                 {(detailRaw?.products?.productsBreakdown ?? []).map((item) => (
-                  <tr key={item.name} className="border-b border-[#1f2937]/50 text-[#e5e7eb]">
+                  <tr key={item.name} className="border-b border-[var(--border)]/50 text-[#e5e7eb]">
                     <td className="py-2">{item.name}</td>
                     <td className="py-2">{item.count}</td>
-                    <td className="py-2">{formatEuro(item.revenue)}</td>
                   </tr>
                 ))}
               </tbody>

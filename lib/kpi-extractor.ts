@@ -12,7 +12,6 @@ function text(v: unknown): string {
 }
 
 export type ExtractedKPIs = {
-  revenue: number;
   occupancy_rate: number;
   positive_feedback: number;
   negative_feedback: number;
@@ -31,7 +30,6 @@ export function extractKPIsFromReportData(
   reportId: string,
   reportData: Record<string, unknown>,
 ): ExtractedKPIs {
-  let revenue = 0;
   let occupancy_rate = 0;
   let positive_feedback = 0;
   let negative_feedback = 0;
@@ -84,8 +82,7 @@ export function extractKPIsFromReportData(
       const k = key.toLowerCase();
       const v = num(value);
 
-      if (k.includes("revenue") || k.includes("umsatz") || k.includes("einnahmen")) revenue = v;
-      else if (k.includes("occupancy") || k.includes("auslastung") || k.includes("belegung")) occupancy_rate = v;
+      if (k.includes("occupancy") || k.includes("auslastung") || k.includes("belegung")) occupancy_rate = v;
       else if (k.includes("positive") || k.includes("positiv")) positive_feedback = v;
       else if (k.includes("negative") || k.includes("negativ") || k.includes("complaint") || k.includes("beschwerde"))
         negative_feedback = v;
@@ -105,7 +102,7 @@ export function extractKPIsFromReportData(
       }
     }
 
-    if (revenue === 0 && occupancy_rate === 0 && negative_feedback === 0) {
+    if (occupancy_rate === 0 && negative_feedback === 0) {
       console.warn(
         `[kpi-extractor] No KPIs extracted for report ${reportId}. Fields: ${Object.keys(reportData).join(", ")}`,
       );
@@ -113,7 +110,6 @@ export function extractKPIsFromReportData(
   }
 
   return {
-    revenue,
     occupancy_rate,
     positive_feedback,
     negative_feedback,

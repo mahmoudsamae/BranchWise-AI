@@ -56,7 +56,6 @@ export async function syncFruhstuckData(
         branch_id: bid,
         date: storeDate,
         orders_count: mapped.orders_count,
-        revenue: mapped.revenue,
         top_item: topItem,
         items: mapped.items,
         raw_data: mapped.raw_data,

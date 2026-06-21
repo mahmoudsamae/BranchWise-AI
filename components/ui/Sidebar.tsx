@@ -70,8 +70,8 @@ export function Sidebar({ brand = "BranchWise AI", subtitle, meta, homeHref, ite
           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
           nested ? "py-2 text-[13px]" : "",
           active
-            ? "border-r-2 border-indigo-500 bg-indigo-500/20 text-indigo-300"
-            : "text-gray-400 hover:bg-gray-800 hover:text-white",
+            ? "border-r-2 border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/20 to-transparent text-[var(--accent-light)] shadow-[inset_0_0_20px_var(--glow-indigo)]"
+            : "text-gray-400 hover:bg-[var(--bg-elevated)]/60 hover:text-white",
         )}
       >
         <span className={cn("shrink-0 opacity-90", nested ? "size-3.5" : "size-4")}>{icon}</span>
@@ -90,7 +90,7 @@ export function Sidebar({ brand = "BranchWise AI", subtitle, meta, homeHref, ite
           {brand}
         </Link>
         {meta ? <p className="mt-2 truncate text-sm font-medium text-gray-400">{meta}</p> : null}
-        <p className="mt-2 inline-flex rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-300">
+        <p className="mt-2 inline-flex rounded-full border border-[var(--accent)]/30 bg-gradient-to-r from-[var(--accent)]/15 to-[var(--accent-2)]/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--accent-light)]">
           {subtitle}
         </p>
       </div>
@@ -158,7 +158,7 @@ export function Sidebar({ brand = "BranchWise AI", subtitle, meta, homeHref, ite
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-gray-800 bg-[#0a0f1e] px-4 py-6 transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-[var(--border)] bg-[var(--bg-primary)]/95 px-4 py-6 backdrop-blur-md transition-transform lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           "lg:top-0 lg:z-40",
         )}
