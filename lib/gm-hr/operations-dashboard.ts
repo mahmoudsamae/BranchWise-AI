@@ -85,7 +85,6 @@ export type OperationsDashboardData = {
   };
   branch_status: BranchStatusRow[];
   projects: OperationsProject[];
-  request_queue: RequestQueueItem[];
 };
 
 const OVERTIME_WARN_HOURS = 10;
@@ -534,6 +533,5 @@ export async function fetchOperationsDashboard(supabase: SupabaseClient): Promis
     },
     branch_status,
     projects,
-    request_queue: request_queue.slice(0, 12),
   };
 }

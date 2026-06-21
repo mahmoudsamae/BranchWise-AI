@@ -265,7 +265,7 @@ export function CommunicationHub({ userRole }: CommunicationHubProps) {
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-white">Communication</h1>
+        <h1 className="text-2xl font-bold text-white">Kommunikation</h1>
         <p className="mt-1 text-sm text-[#9ca3af]">Company channels with live updates.</p>
       </div>
 

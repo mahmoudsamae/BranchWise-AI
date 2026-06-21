@@ -1,3 +1,58 @@
+export type OwnerFunction =
+  | "rezeption"
+  | "sanitaer"
+  | "gruenpflege"
+  | "technik"
+  | "betrieb"
+  | "gastro"
+  | "gm_hq"
+  | "hr"
+  | "filiale";
+
+export const OWNER_FUNCTION_LABELS: Record<OwnerFunction, string> = {
+  rezeption: "Rezeption",
+  sanitaer: "Sanitär",
+  gruenpflege: "Grünanlage",
+  technik: "Technik",
+  betrieb: "Betrieb",
+  gastro: "Küche / Gastro",
+  gm_hq: "GM / HQ",
+  hr: "HR",
+  filiale: "Filiale (allg.)",
+};
+
+export const OWNER_FUNCTION_ORDER: OwnerFunction[] = [
+  "rezeption",
+  "sanitaer",
+  "gruenpflege",
+  "technik",
+  "betrieb",
+  "gastro",
+  "gm_hq",
+  "hr",
+  "filiale",
+];
+
+export function parseOwnerFunction(raw: unknown): OwnerFunction {
+  const v = String(raw ?? "").toLowerCase();
+  if (v === "rezeption" || v === "reception" || v === "empfang") return "rezeption";
+  if (v === "sanitaer" || v === "sanitär" || v === "sanitary") return "sanitaer";
+  if (v === "gruenpflege" || v === "gruen" || v === "grün" || v === "grounds" || v === "pflege") {
+    return "gruenpflege";
+  }
+  if (v === "technik" || v === "engineering") return "technik";
+  if (v === "betrieb" || v === "ops") return "betrieb";
+  if (v === "gastro" || v === "kueche" || v === "küche" || v === "fruhstuck" || v === "kitchen") {
+    return "gastro";
+  }
+  if (v === "gm_hq" || v === "gm" || v === "hq" || v === "produkt" || v === "product" || v === "design" || v === "qa") {
+    return "gm_hq";
+  }
+  if (v === "hr") return "hr";
+  if (v === "filiale" || v === "branch") return "filiale";
+  return "filiale";
+}
+
 export type IssueWorkflowStatus = "planning" | "in_progress" | "blocked" | "completed";
 export type IssuePriority = "low" | "medium" | "high" | "critical";
 export type TaskStatus = "todo" | "in_progress" | "review" | "completed";
@@ -39,6 +94,35 @@ export function parseTaskStatus(raw: unknown, done?: boolean): TaskStatus {
   if (done) return "completed";
   if (raw === "todo" || raw === "in_progress" || raw === "review" || raw === "completed") return raw;
   return "todo";
+}
+
+export type IssueCollaborator = {
+  id: string;
+  userId: string;
+  userName: string;
+  branchId: string;
+  branchName: string;
+  invitedAt: string;
+};
+
+export function parseCollaborators(raw: unknown): IssueCollaborator[] {
+  if (!Array.isArray(raw)) return [];
+  const out: IssueCollaborator[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const userId = String(r.userId ?? "").trim();
+    if (!userId) continue;
+    out.push({
+      id: String(r.id ?? userId),
+      userId,
+      userName: String(r.userName ?? "Campchef").trim(),
+      branchId: String(r.branchId ?? "").trim(),
+      branchName: String(r.branchName ?? "Filiale").trim(),
+      invitedAt: String(r.invitedAt ?? new Date().toISOString()),
+    });
+  }
+  return out;
 }
 
 export type IssueActivity = {

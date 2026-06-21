@@ -455,6 +455,7 @@ export type Database = {
           stage_notes: Json
           stage_checklists: Json
           activities: Json
+          collaborators: Json
           created_by: string | null
           created_at: string
           updated_at: string
@@ -476,6 +477,7 @@ export type Database = {
           stage_notes?: Json
           stage_checklists?: Json
           activities?: Json
+          collaborators?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -497,6 +499,7 @@ export type Database = {
           stage_notes?: Json
           stage_checklists?: Json
           activities?: Json
+          collaborators?: Json
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -1305,53 +1308,6 @@ export type Database = {
           }
         ]
       }
-      export_delivery_schedules: {
-        Row: {
-          id: string
-          user_id: string
-          export_type: string
-          day_of_week: number
-          hour_utc: number
-          branch_ids: string[]
-          all_branches: boolean
-          is_active: boolean
-          last_sent_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          export_type: string
-          day_of_week?: number
-          hour_utc?: number
-          branch_ids?: string[]
-          all_branches?: boolean
-          is_active?: boolean
-          last_sent_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          export_type?: string
-          day_of_week?: number
-          hour_utc?: number
-          branch_ids?: string[]
-          all_branches?: boolean
-          is_active?: boolean
-          last_sent_at?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "export_delivery_schedules_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       overdue_alert_log: {
         Row: {
           id: string
@@ -1380,66 +1336,6 @@ export type Database = {
             columns: ["report_request_id"]
             isOneToOne: false
             referencedRelation: "report_requests"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      recurring_schedules: {
-        Row: {
-          id: string
-          template_id: string
-          branch_ids: string[]
-          all_branches: boolean
-          day_of_week: number
-          period_length_days: number
-          due_after_days: number
-          is_active: boolean
-          created_by: string | null
-          created_at: string
-          last_run_at: string | null
-          next_run_at: string | null
-        }
-        Insert: {
-          id?: string
-          template_id: string
-          branch_ids?: string[]
-          all_branches?: boolean
-          day_of_week: number
-          period_length_days?: number
-          due_after_days?: number
-          is_active?: boolean
-          created_by?: string | null
-          created_at?: string
-          last_run_at?: string | null
-          next_run_at?: string | null
-        }
-        Update: {
-          id?: string
-          template_id?: string
-          branch_ids?: string[]
-          all_branches?: boolean
-          day_of_week?: number
-          period_length_days?: number
-          due_after_days?: number
-          is_active?: boolean
-          created_by?: string | null
-          created_at?: string
-          last_run_at?: string | null
-          next_run_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recurring_schedules_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recurring_schedules_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]

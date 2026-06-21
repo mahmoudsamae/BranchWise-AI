@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { BranchIssuesHub } from "@/components/branch/issues/branch-issues-hub";
 import { demoBranchDashboard } from "@/lib/demo/mock-data";
 import { isDemoSession } from "@/lib/demo/guard";
-import { listIssues } from "@/lib/branch/problems";
+import { listIssuesForUser } from "@/lib/branch/problems";
 import { getSessionUserServer } from "@/lib/session";
 
 export default async function BranchProjectsPage() {
@@ -12,7 +12,7 @@ export default async function BranchProjectsPage() {
 
   if (!isDemoSession(session) && session?.branch_id) {
     try {
-      issues = await listIssues(session.branch_id);
+      issues = await listIssuesForUser(session.branch_id, session.id);
     } catch {
       issues = [];
     }

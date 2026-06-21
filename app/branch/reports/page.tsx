@@ -34,7 +34,7 @@ type Report = {
 
 function formatDay(d: string) {
   try {
-    return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(`${d}T00:00:00.000Z`));
+    return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${d}T00:00:00.000Z`));
   } catch {
     return d;
   }
@@ -44,14 +44,14 @@ function UrgencyBadge({ dueDate }: { dueDate: string }) {
   const u = urgencyForDueDate(dueDate);
   const days = daysUntilDue(dueDate);
   if (u === "overdue") {
-    return <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-200">Overdue</span>;
+    return <span className="rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-200">Überfällig</span>;
   }
   if (u === "today") {
-    return <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-200">Due today</span>;
+    return <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-200">Heute fällig</span>;
   }
   return (
     <span className="rounded-full border border-[#374151] bg-[#111827] px-2 py-0.5 text-xs text-[#9ca3af]">
-      Due in {days} day{days === 1 ? "" : "s"}
+      Fällig in {days} Tag{days === 1 ? "" : "en"}
     </span>
   );
 }
@@ -196,8 +196,8 @@ export default function BranchReportsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold text-[#f9fafb]">My Reports</h1>
-        <p className="mt-2 text-base text-[#9ca3af]">Work on drafts and review submitted reports.</p>
+        <h1 className="text-3xl font-semibold text-[#f9fafb]">Meine Berichte</h1>
+        <p className="mt-2 text-base text-[#9ca3af]">Entwürfe bearbeiten und eingereichte Berichte einsehen.</p>
       </div>
 
       <div className="flex gap-2 border-b border-[#1f2937]">
@@ -211,12 +211,12 @@ export default function BranchReportsPage() {
               tab === t ? "border-[#6366f1] text-white" : "border-transparent text-[#9ca3af] hover:text-[#e5e7eb]",
             )}
           >
-            {t === "pending" ? "Pending" : t === "submitted" ? "Submitted" : "All"}
+            {t === "pending" ? "Ausstehend" : t === "submitted" ? "Eingereicht" : "Alle"}
           </button>
         ))}
       </div>
 
-      {loading ? <p className="text-[#9ca3af]">Loading…</p> : null}
+      {loading ? <p className="text-[#9ca3af]">Wird geladen…</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         {tab === "pending" &&
@@ -243,10 +243,10 @@ export default function BranchReportsPage() {
       </div>
 
       {!loading && tab === "pending" && pendingCards.length === 0 ? (
-        <p className="text-sm text-[#9ca3af]">No pending items.</p>
+        <p className="text-sm text-[#9ca3af]">Keine ausstehenden Berichte.</p>
       ) : null}
       {!loading && tab === "submitted" && submittedCards.length === 0 ? (
-        <p className="text-sm text-[#9ca3af]">No submitted reports yet.</p>
+        <p className="text-sm text-[#9ca3af]">Noch keine eingereichten Berichte.</p>
       ) : null}
     </div>
   );

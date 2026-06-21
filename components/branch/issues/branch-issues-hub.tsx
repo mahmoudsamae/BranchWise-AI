@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { LayoutGrid, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { IssueDetailPanel } from "@/components/branch/issues/issue-detail-panel";
 import { IssueHubOverview } from "@/components/branch/issues/issue-hub-overview";
 import { IssuePlanningForm } from "@/components/branch/issues/issue-planning-form";
 import { KindBadge } from "@/components/branch/issues/issue-shared";
+import { IssueWorkspace } from "@/components/branch/issues/issue-workspace";
 import { cn } from "@/lib/cn";
-import { checklistStats } from "@/lib/branch/issue-stage-data";
+import { fetchBranchStaffOptions } from "@/lib/branch/issue-client";
 import { issueProgressPercent, matchesSearch } from "@/lib/branch/issue-metrics";
 import type { BranchIssue } from "@/lib/branch/problems";
 
 type FilterKind = "all" | "problem" | "project";
-type StatusFilter = "open" | "done";
 
 export function BranchIssuesHub({ initialIssues }: { initialIssues: BranchIssue[] }) {
   const router = useRouter();
@@ -24,22 +23,56 @@ export function BranchIssuesHub({ initialIssues }: { initialIssues: BranchIssue[
 
   const [issues, setIssues] = useState(initialIssues);
   const [kindFilter, setKindFilter] = useState<FilterKind>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
-  const [search, setSearch] = useState("");
+  const [sidebarSearch, setSidebarSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(issueParam);
+  const [staff, setStaff] = useState<{ id: string; full_name: string }[]>([]);
 
   useEffect(() => {
     if (issueParam) setSelectedId(issueParam);
   }, [issueParam]);
 
-  const filtered = useMemo(() => {
-    return issues.filter((i) => {
-      if (i.status !== statusFilter) return false;
+  useEffect(() => {
+    void fetchBranchStaffOptions().then(setStaff);
+  }, []);
+
+  const { ownOpen, sharedOpen } = useMemo(() => {
+    const filtered = issues.filter((i) => {
+      if (i.status !== "open") return false;
       if (kindFilter !== "all" && i.kind !== kindFilter) return false;
-      return matchesSearch(i, search);
+      return matchesSearch(i, sidebarSearch);
     });
-  }, [issues, kindFilter, statusFilter, search]);
+    return {
+      ownOpen: filtered.filter((i) => !i.sharedWithMe),
+      sharedOpen: filtered.filter((i) => i.sharedWithMe),
+    };
+  }, [issues, kindFilter, sidebarSearch]);
+
+  function renderIssueButton(issue: BranchIssue) {
+    return (
+      <button
+        key={issue.id}
+        type="button"
+        onClick={() => selectIssue(issue.id)}
+        className={cn(
+          "mb-1 flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left transition",
+          selectedId === issue.id ? "bg-indigo-500/15 text-white" : "text-[#9ca3af] hover:bg-[#111827] hover:text-white",
+        )}
+      >
+        <LayoutGrid className="mt-0.5 size-3.5 shrink-0 opacity-60" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{issue.title}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-[#6b7280]">
+            <KindBadge kind={issue.kind} />
+            {issue.sharedWithMe ? (
+              <span className="rounded bg-violet-500/15 px-1.5 py-0.5 text-violet-300">Geteilt</span>
+            ) : null}
+            {issueProgressPercent(issue)}%
+          </span>
+        </span>
+      </button>
+    );
+  }
 
   const selected = issues.find((i) => i.id === selectedId) ?? null;
 
@@ -49,16 +82,13 @@ export function BranchIssuesHub({ initialIssues }: { initialIssues: BranchIssue[
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex min-h-[calc(100vh-7rem)] flex-col pb-6">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/branch" className="text-sm text-[#a5b4fc] hover:underline">
             ← Dashboard
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Projekte & Probleme</h1>
-          <p className="mt-1 max-w-2xl text-sm text-[#9ca3af]">
-            Meilensteine, Aufgaben, Kanban und Timeline — alles für die Filial-Execution an einem Ort.
-          </p>
+          <h1 className="mt-1 text-2xl font-bold text-white">Projekte & Probleme</h1>
         </div>
         <button
           type="button"
@@ -69,111 +99,77 @@ export function BranchIssuesHub({ initialIssues }: { initialIssues: BranchIssue[
         </button>
       </div>
 
-      <IssueHubOverview issues={issues} />
+      {!selected ? <IssueHubOverview issues={issues} /> : null}
 
       {showForm ? (
-        <IssuePlanningForm
-          onCreated={(issue) => {
-            setIssues((prev) => [issue, ...prev]);
-            setShowForm(false);
-            selectIssue(issue.id);
-          }}
-          onCancel={() => setShowForm(false)}
-        />
-      ) : null}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b7280]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Suche Projekte, Phasen, Aufgaben…"
-            className="w-full rounded-lg border border-[#374151] bg-[#0a0f1e] py-2 pl-9 pr-3 text-sm text-white"
+        <div className="mb-4">
+          <IssuePlanningForm
+            onCreated={(issue) => {
+              setIssues((prev) => [issue, ...prev]);
+              setShowForm(false);
+              selectIssue(issue.id);
+            }}
+            onCancel={() => setShowForm(false)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["open", "Aktiv"],
-              ["done", "Abgeschlossen"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setStatusFilter(id)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium",
-                statusFilter === id ? "bg-[#6366f1] text-white" : "border border-[#374151] text-[#9ca3af] hover:text-white",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="mx-1 w-px self-stretch bg-[#374151]" />
-          {(
-            [
-              ["all", "Alle"],
-              ["problem", "Probleme"],
-              ["project", "Projekte"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setKindFilter(id)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium",
-                kindFilter === id ? "bg-[#374151] text-white" : "border border-[#374151] text-[#9ca3af] hover:text-white",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(260px,320px)_1fr]">
-        <aside className="space-y-2">
-          {filtered.length === 0 ? (
-            <p className="rounded-xl border border-[#1f2937] bg-[#111827] p-4 text-sm text-[#6b7280]">Keine Treffer.</p>
-          ) : (
-            filtered.map((issue) => {
-              const stageName = issue.stages[issue.currentStage] ?? "—";
-              const stats = checklistStats(issue.stageChecklists[String(issue.currentStage)]);
-              const progress = issueProgressPercent(issue);
-              return (
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-[#1f2937] bg-[#111827]">
+        <aside className="flex w-64 shrink-0 flex-col border-r border-[#1f2937] bg-[#0a0f1e]">
+          <div className="border-b border-[#1f2937] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">Arbeit</p>
+            <input
+              value={sidebarSearch}
+              onChange={(e) => setSidebarSearch(e.target.value)}
+              placeholder="Projekte suchen…"
+              className="mt-2 w-full rounded-lg border border-[#374151] bg-[#111827] px-2.5 py-1.5 text-xs text-white"
+            />
+            <div className="mt-2 flex gap-1">
+              {(
+                [
+                  ["all", "Alle"],
+                  ["project", "Proj."],
+                  ["problem", "Prob."],
+                ] as const
+              ).map(([id, label]) => (
                 <button
-                  key={issue.id}
+                  key={id}
                   type="button"
-                  onClick={() => selectIssue(issue.id)}
+                  onClick={() => setKindFilter(id)}
                   className={cn(
-                    "w-full rounded-xl border p-3 text-left transition",
-                    selectedId === issue.id
-                      ? "border-indigo-500/50 bg-indigo-500/10"
-                      : "border-[#1f2937] bg-[#111827] hover:border-indigo-500/30",
+                    "rounded px-2 py-0.5 text-[10px] font-medium",
+                    kindFilter === id ? "bg-[#6366f1] text-white" : "text-[#6b7280] hover:text-white",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <KindBadge kind={issue.kind} />
-                    <span className="text-[10px] tabular-nums text-[#6b7280]">{progress}%</span>
-                  </div>
-                  <p className="mt-1 font-medium text-white">{issue.title}</p>
-                  <p className="mt-1 text-xs text-[#9ca3af]">
-                    {issue.status === "done" ? "Abgeschlossen" : stageName}
-                    {stats.total > 0 ? ` · ${stats.done}/${stats.total} Tasks` : ""}
-                  </p>
+                  {label}
                 </button>
-              );
-            })
-          )}
+              ))}
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            {ownOpen.length === 0 && sharedOpen.length === 0 ? (
+              <p className="px-2 py-4 text-xs text-[#6b7280]">Keine offenen Einträge.</p>
+            ) : (
+              <>
+                {ownOpen.map(renderIssueButton)}
+                {sharedOpen.length > 0 ? (
+                  <div className="mt-3 border-t border-[#1f2937] pt-2">
+                    <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wide text-violet-400/80">
+                      Geteilt mit mir
+                    </p>
+                    {sharedOpen.map(renderIssueButton)}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         </aside>
 
-        <div>
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#0a0f1e]">
           {selected ? (
-            <IssueDetailPanel
+            <IssueWorkspace
               issue={selected}
+              staff={staff}
               onUpdated={(updated) => setIssues((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))}
               onCompleted={(id) => {
                 setIssues((prev) =>
@@ -181,15 +177,25 @@ export function BranchIssuesHub({ initialIssues }: { initialIssues: BranchIssue[
                     i.id === id ? { ...i, status: "done" as const, workflowStatus: "completed" as const } : i,
                   ),
                 );
-                setStatusFilter("done");
+                setSelectedId((current) => {
+                  if (current === id) {
+                    router.replace("/branch/projects", { scroll: false });
+                    return null;
+                  }
+                  return current;
+                });
               }}
             />
           ) : (
-            <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-dashed border-[#374151] bg-[#111827]/40 p-8 text-center text-sm text-[#6b7280]">
-              Eintrag links wählen oder neu anlegen.
+            <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#374151] p-10 text-center">
+              <LayoutGrid className="size-10 text-[#374151]" />
+              <p className="mt-4 text-sm font-medium text-[#9ca3af]">Projekt oder Problem auswählen</p>
+              <p className="mt-1 max-w-sm text-xs text-[#6b7280]">
+                Links ein Element wählen — Liste, Board und Timeline wie in einem professionellen Projekttool.
+              </p>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -119,7 +119,7 @@ export function Staff360Panel({ staffId }: { staffId: string }) {
           <ul className="space-y-1 text-sm">
             {data.company_forms.map((f) => (
               <li key={f.id}>
-                <Link href={`/hr/${f.module === "document_renewal" ? "document-renewal" : f.module === "shift_handover" ? "shift-handover" : f.module}/${f.id}`} className="text-[#a5b4fc] hover:underline">
+                <Link href={`/hr/${f.module === "document_renewal" ? "document-renewal" : f.module}/${f.id}`} className="text-[#a5b4fc] hover:underline">
                   {f.title} ({f.module}) — {f.status}
                 </Link>
               </li>

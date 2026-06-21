@@ -1,4 +1,4 @@
-export const COMPANY_FORM_MODULES = ["document_renewal", "policy", "incident", "shift_handover"] as const;
+export const COMPANY_FORM_MODULES = ["document_renewal", "policy", "incident"] as const;
 
 export type CompanyFormModule = (typeof COMPANY_FORM_MODULES)[number];
 
@@ -17,8 +17,8 @@ export type ModuleConfig = {
 
 export const MODULE_CONFIG: Record<CompanyFormModule, ModuleConfig> = {
   document_renewal: {
-    label: "Document Renewal",
-    description: "Request updated documents from employees and track expiry dates.",
+    label: "Dokumentenerneuerung",
+    description: "Aktualisierte Dokumente von Mitarbeitenden anfordern und Ablaufdaten verfolgen.",
     hrPath: "/hr/document-renewal",
     publicPathPrefix: "/forms/document-renewal",
     supportsInvites: true,
@@ -28,8 +28,8 @@ export const MODULE_CONFIG: Record<CompanyFormModule, ModuleConfig> = {
     defaultValidityDays: 365,
   },
   policy: {
-    label: "Policies",
-    description: "Distribute policies and collect digital acknowledgments.",
+    label: "Richtlinien",
+    description: "Richtlinien verteilen und digitale Bestätigungen sammeln.",
     hrPath: "/hr/policies",
     publicPathPrefix: "/forms/policy",
     supportsInvites: true,
@@ -39,26 +39,14 @@ export const MODULE_CONFIG: Record<CompanyFormModule, ModuleConfig> = {
     defaultValidityDays: 0,
   },
   incident: {
-    label: "Incidents",
-    description: "Branch QR codes for incident and complaint reports.",
+    label: "Vorfälle",
+    description: "Filial-QR-Codes für Vorfall- und Beschwerdemeldungen.",
     hrPath: "/hr/incidents",
     publicPathPrefix: "/incident",
     supportsInvites: false,
     supportsBulkInvites: false,
     requiresStaffOnInvite: false,
     branchOnly: false,
-    defaultValidityDays: 0,
-  },
-  shift_handover: {
-    label: "Shift Handover",
-    description: "End-of-shift logs filled in by branch managers.",
-    hrPath: "/hr/shift-handover",
-    branchPath: "/branch/handover",
-    publicPathPrefix: "/forms/shift-handover",
-    supportsInvites: false,
-    supportsBulkInvites: false,
-    requiresStaffOnInvite: false,
-    branchOnly: true,
     defaultValidityDays: 0,
   },
 };

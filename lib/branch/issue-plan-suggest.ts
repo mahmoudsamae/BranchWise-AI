@@ -57,6 +57,11 @@ export function suggestIssuePlan(kind: "problem" | "project", goal: string): Iss
         status: "todo" as const,
         priority: "medium" as const,
         dueDate: null,
+        assigneeId: null,
+        assigneeName: null,
+        ownerFunction: "rezeption" as const,
+        description: null,
+        subtasks: [],
       }));
     }
   });

@@ -9,14 +9,6 @@
       "schedule": "0 7 * * 0"
     },
     {
-      "path": "/api/cron/run-schedules",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/deliver-exports",
-      "schedule": "0 10 * * *"
-    },
-    {
       "path": "/api/cron/document-expiry-alerts",
       "schedule": "0 7 * * *"
     }

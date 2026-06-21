@@ -1,4 +1,17 @@
-import { parsePriority, parseTaskStatus, type IssuePriority, type TaskStatus } from "@/lib/branch/issue-types";
+import {
+  parseOwnerFunction,
+  parsePriority,
+  parseTaskStatus,
+  type IssuePriority,
+  type OwnerFunction,
+  type TaskStatus,
+} from "@/lib/branch/issue-types";
+
+export type TaskSubtask = {
+  id: string;
+  text: string;
+  done: boolean;
+};
 
 export type StageChecklistItem = {
   id: string;
@@ -7,9 +20,31 @@ export type StageChecklistItem = {
   status: TaskStatus;
   priority: IssuePriority;
   dueDate: string | null;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  ownerFunction: OwnerFunction;
+  description: string | null;
+  subtasks: TaskSubtask[];
 };
 
 export type StageChecklists = Record<string, StageChecklistItem[]>;
+
+function parseSubtasks(raw: unknown): TaskSubtask[] {
+  if (!Array.isArray(raw)) return [];
+  const out: TaskSubtask[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const text = String(r.text ?? "").trim();
+    if (!text) continue;
+    out.push({
+      id: String(r.id ?? text),
+      text,
+      done: Boolean(r.done),
+    });
+  }
+  return out;
+}
 
 export function normalizeChecklistItem(raw: Record<string, unknown>): StageChecklistItem | null {
   const text = String(raw.text ?? "").trim();
@@ -23,6 +58,11 @@ export function normalizeChecklistItem(raw: Record<string, unknown>): StageCheck
     status,
     priority: parsePriority(raw.priority),
     dueDate: raw.dueDate ? String(raw.dueDate) : null,
+    assigneeId: raw.assigneeId ? String(raw.assigneeId) : null,
+    assigneeName: raw.assigneeName ? String(raw.assigneeName) : null,
+    ownerFunction: parseOwnerFunction(raw.ownerFunction),
+    description: raw.description ? String(raw.description) : null,
+    subtasks: parseSubtasks(raw.subtasks),
   };
 }
 

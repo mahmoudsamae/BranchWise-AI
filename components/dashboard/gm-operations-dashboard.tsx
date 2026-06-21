@@ -9,7 +9,6 @@ import type {
   AreaStatus,
   OperationsDashboardData,
   OperationsProject,
-  RequestQueueItem,
 } from "@/lib/gm-hr/operations-dashboard";
 
 const DOT: Record<AreaStatus, string> = {
@@ -173,21 +172,6 @@ function SupportRequestsCard({
   );
 }
 
-function QueueBadge({ kind }: { kind: RequestQueueItem["kind"] }) {
-  if (kind === "support") {
-    return (
-      <span className="shrink-0 rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-300">
-        Support ↑
-      </span>
-    );
-  }
-  return (
-    <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
-      Bericht
-    </span>
-  );
-}
-
 export function GmOperationsDashboard() {
   const [data, setData] = useState<OperationsDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -345,66 +329,47 @@ export function GmOperationsDashboard() {
         </p>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-[#1f2937] bg-[#111827] p-5">
+      <section className="rounded-2xl border border-[#1f2937] bg-[#111827] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
             Projekte über alle Filialen
           </h2>
-          {data.projects.length === 0 ? (
-            <p className="mt-4 text-sm text-[#9ca3af]">Keine offenen Projekte.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {data.projects.map((p) => {
-                const style = PROJECT_STATUS[p.status];
-                return (
-                  <li key={p.id} className="space-y-2">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-white">
-                          {p.title}
-                          <span className="ml-2 text-sm font-normal text-[#9ca3af]">· {p.branch_name}</span>
-                        </p>
-                        {p.notes ? <p className="mt-0.5 text-xs text-[#6b7280]">{p.notes}</p> : null}
-                      </div>
-                      <span className={`rounded px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${style.badge}`}>
-                        {p.status_label}
-                      </span>
+          <Link href="/dashboard/projects" className="text-xs font-medium text-[#a5b4fc] hover:underline">
+            Alle Projekte →
+          </Link>
+        </div>
+        {data.projects.length === 0 ? (
+          <p className="mt-4 text-sm text-[#9ca3af]">Keine offenen Projekte.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {data.projects.map((p) => {
+              const style = PROJECT_STATUS[p.status];
+              return (
+                <li key={p.id} className="space-y-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-white">
+                        {p.title}
+                        <span className="ml-2 text-sm font-normal text-[#9ca3af]">· {p.branch_name}</span>
+                      </p>
+                      {p.notes ? <p className="mt-0.5 text-xs text-[#6b7280]">{p.notes}</p> : null}
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-[#1f2937]">
-                      <div className={`h-full rounded-full transition-all ${style.bar}`} style={{ width: `${p.progress}%` }} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-2xl border border-[#1f2937] bg-[#111827] p-5">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-[#6b7280]">Anfragen-Queue</h2>
-          {data.request_queue.length === 0 ? (
-            <p className="mt-4 text-sm text-emerald-300/90">Keine offenen Anfragen — alles im grünen Bereich.</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {data.request_queue.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-xl border border-[#1f2937] bg-[#0a0f1e]/60 px-3 py-2.5"
-                >
-                  <QueueBadge kind={item.kind} />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-[#9ca3af]">{item.branch_name}</p>
-                    <p className="text-sm text-[#e5e7eb]">{item.title}</p>
+                    <span className={`rounded px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${style.badge}`}>
+                      {p.status_label}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[#1f2937]">
+                    <div className={`h-full rounded-full transition-all ${style.bar}`} style={{ width: `${p.progress}%` }} />
                   </div>
                 </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <p className="text-center text-xs text-[#4b5563]">
-        Fokus: operative Steuerung · Umsatz und Auslastung sind in Analytics verfügbar
+        Fokus: operative Steuerung · Detailauswertungen im HR-Bereich verfügbar
       </p>
     </div>
   );

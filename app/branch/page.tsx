@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BranchNpsAnalyticsWidget } from "@/components/branch/branch-nps-analytics-widget";
 import { BranchBreakfastCard } from "@/components/branch/branch-breakfast-card";
 import { BranchGoogleReviewsWidget } from "@/components/branch/branch-google-reviews-widget";
 import { BranchOvertimeCard } from "@/components/branch/branch-overtime-card";
@@ -8,9 +9,10 @@ import { BranchReviewsReplyWidget } from "@/components/branch/branch-reviews-rep
 import { BranchSubmissionHistoryWidget } from "@/components/branch/branch-submission-history-widget";
 import { BranchTodaysTasksCard } from "@/components/branch/branch-todays-tasks-card";
 import { getBranchBreakfastDashboardSummary, type BranchBreakfastDashboardSummary } from "@/lib/branch/breakfast-dashboard";
+import { demoBranchNpsAnalytics, fetchBranchNpsAnalytics, type BranchNpsAnalytics } from "@/lib/branch/fetch-branch-nps";
 import { fetchBranchReviewsSummary, fetchBranchSubmissionHistory } from "@/lib/branch/fetch-branch-dashboard";
 import { getOvertimeSummary, type OvertimeSummary } from "@/lib/branch/overtime-summary";
-import { listIssues, type BranchIssue } from "@/lib/branch/problems";
+import { listIssuesForUser, type BranchIssue } from "@/lib/branch/problems";
 import { listReviewsNeedingReply, type ReviewsNeedingReplyPayload } from "@/lib/branch/review-explanations";
 import { getTodaysTaskProgress, type TodaysTaskProgress } from "@/lib/branch/todays-tasks";
 import { demoBranchDashboard } from "@/lib/demo/mock-data";
@@ -63,6 +65,7 @@ export default async function BranchDashboardPage() {
   let issues: BranchIssue[] = [];
   let reviewsNeedingReply: ReviewsNeedingReplyPayload = EMPTY_REVIEWS_NEEDING_REPLY;
   let breakfast: BranchBreakfastDashboardSummary = EMPTY_BREAKFAST;
+  let npsAnalytics: BranchNpsAnalytics = demoBranchNpsAnalytics();
   let loadError: string | null = null;
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -83,6 +86,7 @@ export default async function BranchDashboardPage() {
     issues = demo.issues;
     reviewsNeedingReply = demo.reviewsNeedingReply;
     breakfast = demo.breakfast;
+    npsAnalytics = demoBranchNpsAnalytics();
     loadError = demo.loadError;
   } else if (!bid) {
     loadError = "No branch assigned to your account.";
@@ -112,23 +116,25 @@ export default async function BranchDashboardPage() {
         .gte("submitted_at", weekAgoStr);
       submittedWeek = sw ?? 0;
 
-      [submissionHistory, reviewsSummary, todaysTasks, overtime, issues, reviewsNeedingReply, breakfast] = await Promise.all([
+      [submissionHistory, reviewsSummary, todaysTasks, overtime, issues, reviewsNeedingReply, breakfast, npsAnalytics] =
+        await Promise.all([
         fetchBranchSubmissionHistory(),
         fetchBranchReviewsSummary(),
         getTodaysTaskProgress(bid),
         getOvertimeSummary(bid),
-        listIssues(bid),
+        listIssuesForUser(bid, session!.id),
         listReviewsNeedingReply(bid),
         getBranchBreakfastDashboardSummary(bid),
+        fetchBranchNpsAnalytics(bid),
       ]);
     } catch {
-      loadError = "Could not load data (database or service key).";
+      loadError = "Daten konnten nicht geladen werden (Datenbank oder Service-Schlüssel).";
     }
   }
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const dateLine = new Intl.DateTimeFormat("en-GB", {
+  const greeting = hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
+  const dateLine = new Intl.DateTimeFormat("de-DE", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -150,21 +156,21 @@ export default async function BranchDashboardPage() {
 
       {overdueCount > 0 ? (
         <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100">
-          You have {overdueCount} overdue report{overdueCount === 1 ? "" : "s"}. Submit them now.
+          Du hast {overdueCount} überfällige{overdueCount === 1 ? "n" : ""} Bericht{overdueCount === 1 ? "" : "e"}. Bitte jetzt einreichen.
         </div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-[#1f2937] bg-[#111827] p-6 transition hover:border-red-500/30">
-          <p className="text-sm font-medium text-[#9ca3af]">Reports</p>
+          <p className="text-sm font-medium text-[#9ca3af]">Berichte</p>
           <p className="mt-2 text-3xl font-bold text-red-400">
-            {overdueCount} <span className="text-sm font-normal text-[#9ca3af]">overdue</span>
+            {overdueCount} <span className="text-sm font-normal text-[#9ca3af]">überfällig</span>
           </p>
           <p className="mt-1 text-sm text-[#9ca3af]">
-            {pendingCount} pending · {submittedWeek} submitted this week
+            {pendingCount} ausstehend · {submittedWeek} diese Woche eingereicht
           </p>
           <Link href="/branch/reports" className="mt-4 inline-flex text-sm font-medium text-[#a5b4fc] hover:text-[#c7d2fe]">
-            Open My Reports →
+            Meine Berichte öffnen →
           </Link>
         </div>
 
@@ -181,8 +187,9 @@ export default async function BranchDashboardPage() {
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-[#f9fafb]">More insights</h2>
+        <h2 className="text-lg font-semibold text-[#f9fafb]">Weitere Einblicke</h2>
         <div className="grid gap-4 lg:grid-cols-2">
+          <BranchNpsAnalyticsWidget nps={npsAnalytics} />
           <BranchSubmissionHistoryWidget history={submissionHistory} />
           <BranchGoogleReviewsWidget reviews={reviewsSummary} />
         </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { gmDashboardLegacyRedirect } from "@/lib/gm-hr/dashboard-routes";
 import { BW_SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import type { AppRole } from "@/types/user";
 
@@ -14,7 +15,6 @@ const ROUTE_RULES = [
   { prefix: "/api/templates", roles: ["general_manager", "hr"] as const },
   { prefix: "/api/reports", roles: ["general_manager", "hr"] as const },
   { prefix: "/api/report-requests", roles: ["general_manager", "hr"] as const },
-  { prefix: "/api/schedules", roles: ["general_manager", "hr"] as const },
   { prefix: "/api/exports", roles: ["general_manager", "hr"] as const },
   { prefix: "/api/ki-chat", roles: ["general_manager", "hr"] as const },
   { prefix: "/api/channels", roles: ["general_manager", "hr", "branch_manager"] as const },
@@ -76,6 +76,10 @@ export async function middleware(request: NextRequest) {
   }
   if (PAGE_ROLES.some(([prefix]) => pathname.startsWith(prefix)) && !pageOk(session.role, pathname)) {
     return NextResponse.redirect(new URL(home(session.role), request.url));
+  }
+  if (session.role === "general_manager") {
+    const legacy = gmDashboardLegacyRedirect(pathname);
+    if (legacy) return NextResponse.redirect(new URL(legacy, request.url));
   }
   if (pathname === "/") return NextResponse.redirect(new URL(home(session.role), request.url));
   return NextResponse.next();

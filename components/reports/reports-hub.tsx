@@ -45,7 +45,7 @@ export function ReportsHub({ basePath, workspaceTitle, allowedTemplateTypes, def
     <div className="space-y-6">
       <header className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Reports</h1>
+          <h1 className="text-2xl font-bold text-white">Berichte</h1>
           <p className="mt-2 text-sm text-[#9ca3af]">
             Eingereichte Berichte einsehen, Formularvorlagen bearbeiten oder neue Anfragen an Filialen senden.
           </p>
@@ -77,7 +77,6 @@ export function ReportsHub({ basePath, workspaceTitle, allowedTemplateTypes, def
           defaultTemplateType={defaultTemplateType}
           embedded
           initialTab={view === "send" ? "send" : "templates"}
-          schedulesBasePath={basePath}
         />
       )}
     </div>

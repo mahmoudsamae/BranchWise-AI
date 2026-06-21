@@ -58,7 +58,7 @@ export function BranchStaffRegistry() {
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Staff Directory</h1>
+          <h1 className="text-3xl font-bold text-white">Mitarbeiter</h1>
           <p className="mt-1 text-sm text-[#9ca3af]">View branch staff and open profiles for report entries</p>
         </div>
         <Button type="button" variant="secondary" onClick={() => void load()}>

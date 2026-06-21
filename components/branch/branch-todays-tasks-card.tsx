@@ -5,10 +5,10 @@ import type { TodaysTaskProgress } from "@/lib/branch/todays-tasks";
 export function BranchTodaysTasksCard({ tasks }: { tasks: TodaysTaskProgress[] }) {
   return (
     <div className="rounded-2xl border border-[#1f2937] bg-[#111827] p-6 transition hover:border-indigo-500/30">
-      <p className="text-sm font-medium text-[#9ca3af]">Today&apos;s tasks</p>
+      <p className="text-sm font-medium text-[#9ca3af]">Heutige Aufgaben</p>
 
       {tasks.length === 0 ? (
-        <p className="mt-3 text-sm text-[#6b7280]">No daily checklists set up yet.</p>
+        <p className="mt-3 text-sm text-[#6b7280]">Noch keine Tages-Checklisten eingerichtet.</p>
       ) : (
         <div className="mt-3 space-y-2.5">
           {tasks.slice(0, 3).map((t) => {
@@ -34,7 +34,7 @@ export function BranchTodaysTasksCard({ tasks }: { tasks: TodaysTaskProgress[] }
         href="/branch/ops"
         className="mt-4 inline-flex text-sm font-medium text-[#a5b4fc] hover:text-[#c7d2fe]"
       >
-        Open Branch Ops →
+        Filialbetrieb öffnen →
       </Link>
     </div>
   );

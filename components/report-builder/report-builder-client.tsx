@@ -96,7 +96,6 @@ export default function ReportBuilderClient({
   defaultTemplateType = "daily",
   embedded = false,
   initialTab = "templates",
-  schedulesBasePath,
 }: {
   workspaceTitle: string;
   allowedTemplateTypes: readonly TemplateType[];
@@ -104,7 +103,6 @@ export default function ReportBuilderClient({
   /** Hide page title and tab bar when nested under Reports hub */
   embedded?: boolean;
   initialTab?: "templates" | "send";
-  schedulesBasePath?: "/dashboard" | "/hr";
 }) {
   const { showToast } = useToast();
   const [tab, setTab] = useState<"templates" | "send">(initialTab);
@@ -333,17 +331,6 @@ export default function ReportBuilderClient({
       return next;
     });
   };
-
-  const recurringScheduleHref = useMemo(() => {
-    if (!schedulesBasePath || !sendTemplateId) return null;
-    const params = new URLSearchParams({ new: "1", template_id: sendTemplateId });
-    if (allBranches) {
-      params.set("all_branches", "true");
-    } else if (selectedBranchIds.size > 0) {
-      params.set("branch_ids", [...selectedBranchIds].join(","));
-    }
-    return `${schedulesBasePath}/schedules?${params.toString()}`;
-  }, [schedulesBasePath, sendTemplateId, allBranches, selectedBranchIds]);
 
   useEffect(() => {
     setTab(initialTab);
@@ -622,42 +609,31 @@ export default function ReportBuilderClient({
           </section>
 
           <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-6">
-            <h2 className="text-sm font-semibold text-[#a5b4fc]">Step 4 — Review & send</h2>
+            <h2 className="text-sm font-semibold text-[#a5b4fc]">Schritt 4 — Prüfen & senden</h2>
             <ul className="mt-3 space-y-1 text-sm text-[#d1d5db]">
               <li>
-                Template:{" "}
+                Vorlage:{" "}
                 <strong className="text-white">{activeTemplates.find((t) => t.id === sendTemplateId)?.title ?? "—"}</strong>
               </li>
               <li>
-                Branches:{" "}
+                Filialen:{" "}
                 <strong className="text-white">
-                  {allBranches ? "All branches" : `${selectedBranchIds.size} selected`}
+                  {allBranches ? "Alle Filialen" : `${selectedBranchIds.size} ausgewählt`}
                 </strong>
               </li>
               <li>
-                Period:{" "}
+                Zeitraum:{" "}
                 <strong className="text-white">
                   {periodStart || "—"} → {periodEnd || "—"}
                 </strong>
               </li>
               <li>
-                Due: <strong className="text-white">{dueDatetime || "—"}</strong> (stored as date in database)
+                Fällig: <strong className="text-white">{dueDatetime || "—"}</strong>
               </li>
             </ul>
             <Button type="button" className="mt-4" onClick={() => void sendRequests()}>
-              Send request
+              Anfrage senden
             </Button>
-            {schedulesBasePath ? (
-              <p className="mt-3 text-sm text-[#9ca3af]">
-                {recurringScheduleHref ? (
-                  <Link href={recurringScheduleHref} className="font-medium text-[#a5b4fc] hover:text-[#c7d2fe]">
-                    Set as recurring ↗
-                  </Link>
-                ) : (
-                  <span>Select a template to set up a recurring schedule.</span>
-                )}
-              </p>
-            ) : null}
           </section>
 
           <section>

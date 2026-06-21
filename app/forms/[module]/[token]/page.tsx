@@ -6,7 +6,7 @@ type Props = { params: Promise<{ module: string; token: string }> };
 
 export default async function PublicFormPage({ params }: Props) {
   const { module, token } = await params;
-  if (!isCompanyFormModule(module) || module === "incident" || module === "shift_handover") {
+  if (!isCompanyFormModule(module) || module === "incident") {
     notFound();
   }
 

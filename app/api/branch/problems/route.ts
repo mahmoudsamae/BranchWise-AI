@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createIssue, listIssues } from "@/lib/branch/problems";
+import { createIssue, listIssuesForUser } from "@/lib/branch/problems";
 import type { IssuePriority, IssueWorkflowStatus } from "@/lib/branch/issue-types";
 import type { StageChecklists } from "@/lib/branch/issue-stage-data";
 import { requireBranchManagerApi } from "@/lib/branch/require-session";
@@ -10,7 +10,7 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   try {
-    const issues = await listIssues(auth.session.branch_id);
+    const issues = await listIssuesForUser(auth.session.branch_id, auth.session.id);
     return NextResponse.json({ issues });
   } catch (e) {
     console.error("[GET /api/branch/problems]", e);

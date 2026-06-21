@@ -13,6 +13,9 @@ import { getMockReviewsForBranch } from "@/lib/google/mock-reviews";
 
 import { DEMO_BRANCH_IDS, DEMO_REPORT_ID } from "./config";
 
+const DEMO_BRANCH_MANAGER_ID = "00000000-0000-4000-8000-000000000003";
+const DEMO_BODENSEE_CHEF_ID = "00000000-0000-4000-8000-000000000099";
+
 const BRANCHES = [
   { id: DEMO_BRANCH_IDS.regensburg, name: "AZUR Camping Regensburg", location: "Regensburg", is_active: true, external_id: "DEMO-R" },
   { id: DEMO_BRANCH_IDS.bodensee, name: "AZUR Camping Bodensee", location: "Friedrichshafen", is_active: true, external_id: "DEMO-B" },
@@ -114,9 +117,6 @@ export function demoOperationsDashboard(): OperationsDashboardData {
         notes: "Wartet auf Budgetfreigabe für Fliesen",
         progress: 25,
       },
-    ],
-    request_queue: [
-      { id: "q1", kind: "support", branch_id: DEMO_BRANCH_IDS.regensburg, branch_name: "Regensburg", title: "Budget für Fliesen Sanitärgebäude", source: "branch_issues" },
     ],
   };
 }
@@ -641,6 +641,17 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
     issues: [
       {
         id: "demo-issue-1",
+        ownerBranchId: DEMO_BRANCH_IDS.regensburg,
+        ownerBranchName: "AZUR Camping Regensburg",
+        sharedWithMe: false,
+        ownerUserId: DEMO_BRANCH_MANAGER_ID,
+        ownerUserName: "Demo Branch Manager",
+        isOwner: true,
+        canManage: true,
+        canEditTasks: true,
+        canMutateTaskList: true,
+        isCollaborator: false,
+        collaborators: [],
         kind: "problem",
         title: "Kaputte Schranke — Einfahrt",
         stages: ["Gemeldet", "Telefonat Firma", "Anfrage", "Kalkulation", "Entscheidung", "Repariert"],
@@ -659,8 +670,8 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         },
         stageChecklists: {
           "3": [
-            { id: "c1", text: "Angebot eingeholt", done: true, status: "completed", priority: "high", dueDate: null },
-            { id: "c2", text: "GM informiert", done: false, status: "todo", priority: "medium", dueDate: null },
+            { id: "c1", text: "Angebot eingeholt", done: true, status: "completed", priority: "high", dueDate: null, assigneeId: null, assigneeName: null, ownerFunction: "betrieb", description: null, subtasks: [] },
+            { id: "c2", text: "GM informiert", done: false, status: "todo", priority: "medium", dueDate: null, assigneeId: null, assigneeName: null, ownerFunction: "gm_hq", description: null, subtasks: [] },
           ],
         },
         activities: [{ id: "a1", at: "2026-06-15T08:00:00.000Z", action: "Phase gewechselt", detail: "Entscheidung" }],
@@ -669,6 +680,17 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
       },
       {
         id: "demo-issue-2",
+        ownerBranchId: DEMO_BRANCH_IDS.regensburg,
+        ownerBranchName: "AZUR Camping Regensburg",
+        sharedWithMe: false,
+        ownerUserId: DEMO_BRANCH_MANAGER_ID,
+        ownerUserName: "Demo Branch Manager",
+        isOwner: true,
+        canManage: true,
+        canEditTasks: true,
+        canMutateTaskList: true,
+        isCollaborator: false,
+        collaborators: [],
         kind: "problem",
         title: "WLAN-Ausfall — Sektor C",
         stages: ["Gemeldet", "Telefonat Firma", "Anfrage", "Kalkulation", "Entscheidung", "Behoben"],
@@ -691,6 +713,26 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
       },
       {
         id: "demo-issue-3",
+        ownerBranchId: DEMO_BRANCH_IDS.regensburg,
+        ownerBranchName: "AZUR Camping Regensburg",
+        sharedWithMe: false,
+        ownerUserId: DEMO_BRANCH_MANAGER_ID,
+        ownerUserName: "Demo Branch Manager",
+        isOwner: true,
+        canManage: true,
+        canEditTasks: true,
+        canMutateTaskList: true,
+        isCollaborator: false,
+        collaborators: [
+          {
+            id: "demo-collab-1",
+            userId: "00000000-0000-4000-8000-000000000099",
+            userName: "Campchef Bodensee",
+            branchId: DEMO_BRANCH_IDS.bodensee,
+            branchName: "AZUR Camping Bodensee",
+            invitedAt: "2026-06-10T10:00:00.000Z",
+          },
+        ],
         kind: "project",
         title: "Digital Check-in Rollout",
         stages: ["Konzept", "Setup", "Test", "Schulung", "Live"],
@@ -707,14 +749,57 @@ export function demoBranchDashboard(): BranchDashboardDemoData {
         },
         stageChecklists: {
           "2": [
-            { id: "t1", text: "Station A getestet", done: true, status: "completed", priority: "medium", dueDate: null },
-            { id: "t2", text: "Station B getestet", done: true, status: "completed", priority: "medium", dueDate: null },
-            { id: "t3", text: "Feedback auswerten", done: false, status: "in_progress", priority: "high", dueDate: "2026-06-20" },
+            { id: "t1", text: "Station A getestet", done: true, status: "completed", priority: "medium", dueDate: null, assigneeId: null, assigneeName: null, ownerFunction: "technik", description: null, subtasks: [] },
+            { id: "t2", text: "Station B getestet", done: true, status: "completed", priority: "medium", dueDate: null, assigneeId: null, assigneeName: null, ownerFunction: "technik", description: null, subtasks: [] },
+            { id: "t3", text: "Feedback auswerten", done: false, status: "in_progress", priority: "high", dueDate: "2026-06-20", assigneeId: null, assigneeName: null, ownerFunction: "gm_hq", description: null, subtasks: [] },
           ],
         },
         activities: [{ id: "a2", at: "2026-06-14T08:00:00.000Z", action: "Aufgabe hinzugefügt", detail: "Feedback auswerten" }],
         createdAt: "2026-05-26T08:00:00.000Z",
         updatedAt: "2026-06-14T08:00:00.000Z",
+      },
+      {
+        id: "demo-issue-shared-1",
+        ownerBranchId: DEMO_BRANCH_IDS.bodensee,
+        ownerBranchName: "AZUR Camping Bodensee",
+        sharedWithMe: true,
+        ownerUserId: DEMO_BODENSEE_CHEF_ID,
+        ownerUserName: "Campchef Bodensee",
+        isOwner: false,
+        canManage: false,
+        canEditTasks: true,
+        canMutateTaskList: false,
+        isCollaborator: true,
+        collaborators: [
+          {
+            id: "demo-collab-self",
+            userId: "00000000-0000-4000-8000-000000000003",
+            userName: "Demo Branch Manager",
+            branchId: DEMO_BRANCH_IDS.regensburg,
+            branchName: "AZUR Camping Regensburg",
+            invitedAt: "2026-06-08T09:00:00.000Z",
+          },
+        ],
+        kind: "project",
+        title: "Gemeinsame Terrassen-Erweiterung",
+        stages: ["Konzept", "Setup", "Test", "Schulung", "Live"],
+        currentStage: 1,
+        status: "open",
+        workflowStatus: "in_progress",
+        priority: "medium",
+        dueDate: "2026-08-01",
+        stageDueDates: {},
+        costEstimate: null,
+        notes: "Geteiltes Projekt — Bodensee führt, Regensburg unterstützt beim Setup.",
+        stageNotes: {},
+        stageChecklists: {
+          "1": [
+            { id: "s1", text: "Material bestellen", done: false, status: "todo", priority: "medium", dueDate: null, assigneeId: null, assigneeName: null, ownerFunction: "betrieb", description: null, subtasks: [] },
+          ],
+        },
+        activities: [{ id: "a3", at: "2026-06-08T09:00:00.000Z", action: "Campchef eingeladen", detail: "Demo Branch Manager" }],
+        createdAt: "2026-06-01T08:00:00.000Z",
+        updatedAt: "2026-06-08T09:00:00.000Z",
       },
     ],
     reviewsNeedingReply: {

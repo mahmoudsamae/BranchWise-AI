@@ -153,6 +153,11 @@ export function IssueDetailPanel({
       status: "todo",
       priority: "medium",
       dueDate: null,
+      assigneeId: null,
+      assigneeName: null,
+      ownerFunction: "filiale",
+      description: null,
+      subtasks: [],
     };
     await saveChecklists({ ...checklists, [stageKey]: [...checklist, item] }, "Aufgabe hinzugefügt");
     setNewTask("");

@@ -12,12 +12,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { EXPORT_TYPE_LABELS } from "@/lib/exports/delivery-schedule-labels";
 import { lastFourWeeksRange, lastWeekRange } from "@/lib/exports/fetch-data";
-import type { ScheduledExportType } from "@/lib/exports/generate-pdf";
-import { DAY_OF_WEEK_LABELS } from "@/lib/schedules/dates";
 
 type ExportFormat = "pdf" | "excel" | "both";
 
@@ -41,29 +37,6 @@ type QuickCard = {
   filename: (body: Record<string, unknown>) => string;
   format: "pdf" | "excel";
 };
-
-type DeliveryScheduleRow = {
-  id: string;
-  export_type: ScheduledExportType;
-  day_of_week: number;
-  hour_utc: number;
-  branch_ids: string[];
-  branch_names: string[];
-  all_branches: boolean;
-  is_active: boolean;
-  last_sent_at: string | null;
-  label: string;
-};
-
-function ScheduleSkeleton() {
-  return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-      {[0, 1].map((i) => (
-        <div key={i} className="h-24 animate-pulse rounded-xl bg-[#1f2937]/80" />
-      ))}
-    </div>
-  );
-}
 
 function HistorySkeleton() {
   return (
@@ -94,17 +67,6 @@ export function ExportsClient({ mode }: { mode: "gm" | "hr" }) {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [cardState, setCardState] = useState<Record<string, "idle" | "loading" | "ready">>({});
   const [customLoading, setCustomLoading] = useState(false);
-  const [deliverySchedules, setDeliverySchedules] = useState<DeliveryScheduleRow[]>([]);
-  const [schedulesLoading, setSchedulesLoading] = useState(true);
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [scheduleForm, setScheduleForm] = useState({
-    export_type: "weekly" as ScheduledExportType,
-    day_of_week: 0,
-    hour_utc: 7,
-    all_branches: true,
-    branch_ids: new Set<string>(),
-  });
 
   const downloadUrls = useRef<Map<string, string>>(new Map());
 
@@ -173,17 +135,6 @@ export function ExportsClient({ mode }: { mode: "gm" | "hr" }) {
     }
   }, []);
 
-  const loadDeliverySchedules = useCallback(async () => {
-    setSchedulesLoading(true);
-    try {
-      const res = await fetch("/api/exports/delivery-schedules");
-      const j = (await res.json()) as { schedules?: DeliveryScheduleRow[]; error?: string };
-      if (res.ok) setDeliverySchedules(j.schedules ?? []);
-    } finally {
-      setSchedulesLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     void fetch("/api/branches")
       .then((r) => r.json())
@@ -193,8 +144,7 @@ export function ExportsClient({ mode }: { mode: "gm" | "hr" }) {
         setSelectedBranches(new Set(list.map((b) => b.id)));
       });
     void loadHistory();
-    void loadDeliverySchedules();
-  }, [loadHistory, loadDeliverySchedules]);
+  }, [loadHistory]);
 
   const pushHistory = async (entry: Omit<HistoryEntry, "id" | "generated_at">) => {
     try {
@@ -341,92 +291,15 @@ export function ExportsClient({ mode }: { mode: "gm" | "hr" }) {
     });
   };
 
-  const toggleScheduleBranch = (id: string) => {
-    setScheduleForm((f) => {
-      const next = new Set(f.branch_ids);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return { ...f, all_branches: false, branch_ids: next };
-    });
-  };
-
-  const openScheduleModal = () => {
-    setScheduleForm({
-      export_type: "weekly",
-      day_of_week: 0,
-      hour_utc: 7,
-      all_branches: true,
-      branch_ids: new Set(),
-    });
-    setScheduleModalOpen(true);
-  };
-
-  const createDeliverySchedule = async () => {
-    if (!scheduleForm.all_branches && scheduleForm.branch_ids.size === 0) {
-      showToast("Select at least one branch or choose all branches", "error");
-      return;
-    }
-    if (
-      scheduleForm.export_type === "comparison" &&
-      !scheduleForm.all_branches &&
-      scheduleForm.branch_ids.size < 2
-    ) {
-      showToast("Comparison exports need at least two branches", "error");
-      return;
-    }
-
-    setScheduleSaving(true);
-    try {
-      const res = await fetch("/api/exports/delivery-schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          export_type: scheduleForm.export_type,
-          day_of_week: scheduleForm.day_of_week,
-          hour_utc: scheduleForm.hour_utc,
-          all_branches: scheduleForm.all_branches,
-          branch_ids: scheduleForm.all_branches ? [] : [...scheduleForm.branch_ids],
-        }),
-      });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        showToast(j.error ?? "Could not create schedule", "error");
-        return;
-      }
-      showToast("Delivery schedule created", "success");
-      setScheduleModalOpen(false);
-      void loadDeliverySchedules();
-    } finally {
-      setScheduleSaving(false);
-    }
-  };
-
-  const deleteDeliverySchedule = async (id: string) => {
-    const res = await fetch("/api/exports/delivery-schedules", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    const j = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      showToast(j.error ?? "Could not delete schedule", "error");
-      return;
-    }
-    showToast("Schedule removed", "success");
-    void loadDeliverySchedules();
-  };
-
-  const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
-
   return (
     <div className="space-y-10 pb-10">
       <header>
-        <h1 className="text-3xl font-bold text-white">Exports</h1>
-        <p className="mt-2 text-sm text-[#9ca3af]">AI-powered management reports and data exports</p>
+        <h1 className="text-3xl font-bold text-white">Exporte</h1>
+        <p className="mt-2 text-sm text-[#9ca3af]">KI-gestützte Managementberichte und Datenexporte</p>
       </header>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-white">Quick exports</h2>
+        <h2 className="mb-4 text-lg font-semibold text-white">Schnellexporte</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {quickCards.map((card) => {
             const state = cardState[card.id] ?? "idle";
@@ -468,167 +341,7 @@ export function ExportsClient({ mode }: { mode: "gm" | "hr" }) {
       </section>
 
       <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Scheduled Delivery</h2>
-            <p className="mt-1 text-sm text-[#9ca3af]">
-              Automatically generate PDFs and email them to you. Times are in UTC (max 3 schedules).
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={deliverySchedules.length >= 3}
-            onClick={openScheduleModal}
-          >
-            Schedule delivery
-          </Button>
-        </div>
-
-        {schedulesLoading ? (
-          <ScheduleSkeleton />
-        ) : deliverySchedules.length === 0 ? (
-          <p className="mt-4 text-sm text-[#9ca3af]">No scheduled deliveries yet.</p>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {deliverySchedules.map((s) => (
-              <article
-                key={s.id}
-                className="flex flex-col justify-between rounded-xl border border-[#1f2937] bg-[#0a0f1e]/60 p-4"
-              >
-                <div>
-                  <p className="font-medium text-white">{s.label}</p>
-                  <p className="mt-2 text-sm text-[#9ca3af]">
-                    {s.all_branches ? "All branches" : s.branch_names.join(", ") || `${s.branch_ids.length} branch(es)`}
-                  </p>
-                  {s.last_sent_at ? (
-                    <p className="mt-1 text-xs text-[#6b7280]">
-                      Last sent{" "}
-                      {new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short" }).format(
-                        new Date(s.last_sent_at),
-                      )}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs text-[#6b7280]">Not sent yet</p>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={() => void deleteDeliverySchedule(s.id)}>
-                    Remove
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <Modal
-        open={scheduleModalOpen}
-        title="Schedule delivery"
-        onClose={() => setScheduleModalOpen(false)}
-        footer={
-          <>
-            <Button type="button" variant="ghost" onClick={() => setScheduleModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" disabled={scheduleSaving} onClick={() => void createDeliverySchedule()}>
-              {scheduleSaving ? "Saving…" : "Create schedule"}
-            </Button>
-          </>
-        }
-      >
-        <div className="grid gap-4 pt-2">
-          <p className="text-xs text-[#9ca3af]">All times are UTC. You can have up to 3 active schedules.</p>
-
-          <div className="grid gap-1.5">
-            <span className="text-sm font-medium text-[#9ca3af]">Export type</span>
-            <select
-              value={scheduleForm.export_type}
-              onChange={(e) =>
-                setScheduleForm((f) => ({ ...f, export_type: e.target.value as ScheduledExportType }))
-              }
-              className="rounded-lg border border-[#1f2937] bg-[#0a0f1e] px-3 py-2 text-sm text-white"
-            >
-              <option value="weekly">{EXPORT_TYPE_LABELS.weekly}</option>
-              <option value="management">{EXPORT_TYPE_LABELS.management}</option>
-              <option value="comparison">{EXPORT_TYPE_LABELS.comparison}</option>
-            </select>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <span className="text-sm font-medium text-[#9ca3af]">Day of week</span>
-              <select
-                value={scheduleForm.day_of_week}
-                onChange={(e) => setScheduleForm((f) => ({ ...f, day_of_week: Number(e.target.value) }))}
-                className="rounded-lg border border-[#1f2937] bg-[#0a0f1e] px-3 py-2 text-sm text-white"
-              >
-                {DAY_OF_WEEK_LABELS.map((label, i) => (
-                  <option key={label} value={i}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <span className="text-sm font-medium text-[#9ca3af]">Hour (UTC)</span>
-              <select
-                value={scheduleForm.hour_utc}
-                onChange={(e) => setScheduleForm((f) => ({ ...f, hour_utc: Number(e.target.value) }))}
-                className="rounded-lg border border-[#1f2937] bg-[#0a0f1e] px-3 py-2 text-sm text-white"
-              >
-                {hourOptions.map((h) => (
-                  <option key={h} value={h}>
-                    {String(h).padStart(2, "0")}:00
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-[#e5e7eb]">
-            <input
-              type="checkbox"
-              checked={scheduleForm.all_branches}
-              onChange={(e) =>
-                setScheduleForm((f) => ({
-                  ...f,
-                  all_branches: e.target.checked,
-                  branch_ids: e.target.checked ? new Set() : f.branch_ids,
-                }))
-              }
-              className="accent-[#6366f1]"
-            />
-            All branches
-          </label>
-
-          {!scheduleForm.all_branches ? (
-            <ul className="grid max-h-40 gap-2 overflow-y-auto sm:grid-cols-2">
-              {branches.map((b) => (
-                <li key={b.id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#1f2937] px-3 py-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={scheduleForm.branch_ids.has(b.id)}
-                      onChange={() => toggleScheduleBranch(b.id)}
-                      className="accent-[#6366f1]"
-                    />
-                    {b.name}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {scheduleForm.export_type === "comparison" ? (
-            <p className="text-xs text-amber-200/90">Comparison exports require at least two branches.</p>
-          ) : null}
-        </div>
-      </Modal>
-
-      <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-6">
-        <h2 className="text-lg font-semibold text-white">Custom export</h2>
+        <h2 className="text-lg font-semibold text-white">Individueller Export</h2>
         <div className="mt-6 grid gap-6">
           <div className="flex flex-wrap gap-4">
             <label className="text-sm text-[#9ca3af]">

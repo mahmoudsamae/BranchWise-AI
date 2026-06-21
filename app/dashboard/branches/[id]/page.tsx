@@ -5,6 +5,7 @@ import { BranchDetailTabs } from "@/components/dashboard/branch-detail-tabs";
 import { BranchExternalIdEditor } from "@/components/dashboard/branch-external-id-editor";
 import { BranchGoogleReviews } from "@/components/google/branch-google-reviews";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/Table";
+import { formatBranchManagerList } from "@/lib/gm-hr/team-query";
 import { reportStatusClass, reportStatusLabel } from "@/lib/reports/status-display";
 import { createServiceRoleClient } from "@/lib/supabase";
 
@@ -19,13 +20,14 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
     .maybeSingle();
   if (!branch) notFound();
 
-  const { data: manager } = await supabase
+  const { data: managers } = await supabase
     .from("users")
-    .select("full_name, email")
+    .select("full_name, email, branch_id")
     .eq("branch_id", id)
     .eq("role", "branch_manager")
-    .limit(1)
-    .maybeSingle();
+    .order("full_name");
+
+  const campchefs = formatBranchManagerList(managers ?? [], id);
 
   const { data: kpis } = await supabase
     .from("kpis")
@@ -56,16 +58,14 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="space-y-8">
       <Link href="/dashboard/branches" className="text-sm text-[#a5b4fc] hover:underline">
-        ← Branches
+        ← Filialen
       </Link>
 
       <header>
         <h1 className="text-2xl font-bold text-white">{branch.name}</h1>
         {branch.location ? <p className="text-[#9ca3af]">{branch.location}</p> : null}
-        {manager ? (
-          <p className="mt-2 text-sm text-[#d1d5db]">
-            Manager: {manager.full_name || manager.email} ({manager.email})
-          </p>
+        {campchefs !== "—" ? (
+          <p className="mt-2 text-sm text-[#d1d5db]">Campchef: {campchefs}</p>
         ) : null}
       </header>
 
@@ -75,13 +75,13 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
             <BranchExternalIdEditor branchId={branch.id} initialSlug={branch.external_id} />
 
             <section className="rounded-xl border border-[#1f2937] bg-[#111827] p-6">
-              <h2 className="mb-3 text-lg font-semibold text-white">KPI history (recent)</h2>
+              <h2 className="mb-3 text-lg font-semibold text-white">KPI-Verlauf (aktuell)</h2>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell as="th">Period end</TableCell>
-              <TableCell as="th">Revenue</TableCell>
-              <TableCell as="th">Occupancy</TableCell>
+              <TableCell as="th">Periodenende</TableCell>
+              <TableCell as="th">Umsatz</TableCell>
+              <TableCell as="th">Auslastung</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -97,7 +97,7 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Reports</h2>
+        <h2 className="mb-3 text-lg font-semibold text-white">Berichte</h2>
         <Table>
           <TableHead>
             <TableRow>
